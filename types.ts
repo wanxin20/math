@@ -20,6 +20,8 @@ export interface User {
   name: string;
   email: string;
   institution: string;
+  title: string;
+  phone: string;
 }
 
 export interface UserRegistration {

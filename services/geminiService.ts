@@ -15,19 +15,20 @@ export class GeminiSupportService {
         model: 'gemini-3-flash-preview',
         contents: message,
         config: {
-          systemInstruction: `You are an intelligent assistant for the XXXX Competition Platform.
+          systemInstruction: `You are an intelligent Research and Teaching Assistant for the XXXX Teacher Paper Platform.
           Current User Interface Language: ${lang === 'zh' ? 'Chinese (Simplified)' : 'English'}.
+          Target Audience: Professional Teachers, Educators, and Researchers.
           Please reply in the SAME language as the User Interface (${lang}).
-          Topics you can help with: registration, payment, template downloads, paper submission.
+          Topics you can help with: paper formatting (APA/MLA), submission deadlines, categories (Pedagogy, Innovation, EdTech), and payment issues.
           Context: ${context}
-          Keep responses concise, professional, and friendly.`,
+          Style: Academic, supportive, professional, and formal.`,
           temperature: 0.7,
         }
       });
       return response.text;
     } catch (error) {
       console.error("Gemini API Error:", error);
-      return lang === 'zh' ? "抱歉，我现在遇到了一点问题。" : "Sorry, I am having some trouble right now.";
+      return lang === 'zh' ? "抱歉，教研助手遇到了一点技术问题，请稍后再试。" : "Sorry, the research assistant encountered a technical issue.";
     }
   }
 }
