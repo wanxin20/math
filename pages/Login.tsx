@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { Language, translations } from '../i18n';
+import api from '../services/api';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -10,8 +11,11 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const lt = translations[lang].login;
   const [formData, setFormData] = useState({
+    username: '',
     name: '',
     email: '',
     institution: '',
@@ -20,16 +24,47 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
     password: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin({
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.name || (lang === 'zh' ? '教师' : 'Teacher'),
-      email: formData.email || 'teacher@school.edu.cn',
-      institution: formData.institution || (lang === 'zh' ? 'XXXX学校' : 'XXXX School'),
-      title: formData.title || (lang === 'zh' ? '中级教师' : 'Intermediate Teacher'),
-      phone: formData.phone || '13800000000'
-    });
+    setLoading(true);
+    setError('');
+
+    try {
+      if (isLogin) {
+        // 登录
+        const response = await api.auth.login(formData.email, formData.password);
+        if (response.success && response.data) {
+          // 保存 token（后端返回的是 accessToken 驼峰命名）
+          localStorage.setItem('math_token', response.data.accessToken);
+          // 直接使用登录返回的用户信息
+          if (response.data.user) {
+            onLogin(response.data.user);
+          }
+        } else {
+          setError(response.message || (lang === 'zh' ? '登录失败' : 'Login failed'));
+        }
+      } else {
+        // 注册
+        const response = await api.auth.register({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          institution: formData.institution,
+          title: formData.title,
+          phone: formData.phone,
+        });
+        if (response.success) {
+          alert(lang === 'zh' ? '注册成功！请登录' : 'Registration successful! Please login');
+          setIsLogin(true);
+        } else {
+          setError(response.message || (lang === 'zh' ? '注册失败' : 'Registration failed'));
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || (lang === 'zh' ? '网络错误，请稍后重试' : 'Network error, please try again'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,6 +79,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
+              {error}
+            </div>
+          )}
+          
           {!isLogin && (
             <>
               <div className="grid grid-cols-1 gap-4">
@@ -112,16 +153,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
             <input 
               type="password" 
               required
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
               placeholder="••••••••"
             />
           </div>
           
           <button 
-            type="submit" 
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition text-lg mt-4"
+            type="submit"
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition text-lg mt-4"
           >
-            {isLogin ? lt.btnSubmitLogin : lt.btnSubmitSignUp}
+            {loading ? (lang === 'zh' ? '处理中...' : 'Processing...') : (isLogin ? lt.btnSubmitLogin : lt.btnSubmitSignUp)}
           </button>
         </form>
 

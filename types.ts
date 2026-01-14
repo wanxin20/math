@@ -22,6 +22,7 @@ export interface User {
   institution: string;
   title: string;
   phone: string;
+  role?: 'user' | 'admin';
 }
 
 export interface UserRegistration {

@@ -1,8 +1,33 @@
 
-import React from 'react';
-import { TEMPLATES } from '../constants';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 
 const Resources: React.FC = () => {
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadResources();
+  }, []);
+
+  const loadResources = async () => {
+    setLoading(true);
+    try {
+      const response = await api.resource.getList({ page: 1, pageSize: 50 });
+      if (response.success && response.data) {
+        const resourceData = response.data.items || response.data;
+        setResources(Array.isArray(resourceData) ? resourceData : []);
+      }
+    } catch (error) {
+      console.error('Failed to load resources:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const paperTemplates = resources.filter(r => r.category === 'template' || r.type === 'doc');
+  const ruleDocuments = resources.filter(r => r.category === 'rules' || r.type === 'pdf');
+
   return (
     <div className="space-y-12">
       <div className="text-center max-w-3xl mx-auto py-8">
@@ -23,12 +48,26 @@ const Resources: React.FC = () => {
             包含 Word 和 LaTeX 两个主流版本的标准排版格式，严格遵循学会竞赛规范。
           </p>
           <div className="space-y-4">
-            {TEMPLATES.map((t, i) => (
-              <div key={i} className="flex items-center justify-between group cursor-pointer">
-                <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition">{t.name}</span>
-                <i className="fas fa-download text-gray-300 group-hover:text-blue-600 transition"></i>
-              </div>
-            ))}
+            {loading ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="h-6 bg-gray-200 rounded animate-pulse"></div>
+              ))
+            ) : paperTemplates.length > 0 ? (
+              paperTemplates.map((resource) => (
+                <div 
+                  key={resource.id} 
+                  className="flex items-center justify-between group cursor-pointer"
+                  onClick={() => api.resource.download(resource.id)}
+                >
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition">
+                    {resource.name || resource.title}
+                  </span>
+                  <i className="fas fa-download text-gray-300 group-hover:text-blue-600 transition"></i>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-4">暂无模板资源</p>
+            )}
           </div>
         </div>
 
@@ -41,14 +80,24 @@ const Resources: React.FC = () => {
             详细列出了参赛资格、学术诚信要求、奖项设置以及评审标准。
           </p>
           <div className="space-y-4 text-sm">
-             <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
-               <i className="fas fa-info-circle text-orange-500"></i>
-               <span>2024年竞赛诚信守则.pdf</span>
-             </div>
-             <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
-               <i className="fas fa-info-circle text-orange-500"></i>
-               <span>评审流程白皮书.pdf</span>
-             </div>
+            {loading ? (
+              [1, 2].map((i) => (
+                <div key={i} className="h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+              ))
+            ) : ruleDocuments.length > 0 ? (
+              ruleDocuments.map((resource) => (
+                <div 
+                  key={resource.id}
+                  className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-orange-50 transition"
+                  onClick={() => api.resource.download(resource.id)}
+                >
+                  <i className="fas fa-info-circle text-orange-500"></i>
+                  <span>{resource.name || resource.title}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400 text-center py-4">暂无规则文档</p>
+            )}
           </div>
         </div>
 

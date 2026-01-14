@@ -43,6 +43,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
             {user && (
               <Link to="/dashboard" className={`text-sm font-medium transition ${isActive('/dashboard') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.dashboard}</Link>
             )}
+            {user && user.role === 'admin' && (
+              <>
+                <Link to="/admin/users" className={`text-sm font-medium transition ${isActive('/admin/users') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>用户管理</Link>
+                <Link to="/admin/competitions" className={`text-sm font-medium transition ${isActive('/admin/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>竞赛管理</Link>
+                <Link to="/admin/resources" className={`text-sm font-medium transition ${isActive('/admin/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>资源管理</Link>
+              </>
+            )}
           </nav>
 
           {/* Actions & Mobile Toggle */}
@@ -118,6 +125,31 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                   >
                     <i className="fas fa-user-circle w-8"></i>{t.dashboard}
                   </Link>
+                )}
+                {user && user.role === 'admin' && (
+                  <>
+                    <Link 
+                      to="/admin/users" 
+                      onClick={closeMenu} 
+                      className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/users') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <i className="fas fa-users-cog w-8"></i>用户管理
+                    </Link>
+                    <Link 
+                      to="/admin/competitions" 
+                      onClick={closeMenu} 
+                      className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/competitions') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <i className="fas fa-trophy w-8"></i>竞赛管理
+                    </Link>
+                    <Link 
+                      to="/admin/resources" 
+                      onClick={closeMenu} 
+                      className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/resources') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <i className="fas fa-folder-open w-8"></i>资源管理
+                    </Link>
+                  </>
                 )}
                 
                 <div className="pt-4 mt-2 border-t border-gray-100 flex flex-col gap-3">

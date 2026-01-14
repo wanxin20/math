@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
-import { COMPETITIONS } from '../constants';
+import React, { useState, useEffect } from 'react';
 import { Competition, RegistrationStatus, User } from '../types';
 import { Language } from '../i18n';
+import api from '../services/api';
 
 interface CompetitionListProps {
   user: User | null;
@@ -13,11 +13,43 @@ interface CompetitionListProps {
 
 const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, hasRegistered, lang }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(lang === 'zh' ? '全部' : 'All');
-  const categories = [lang === 'zh' ? '全部' : 'All', ...new Set(COMPETITIONS.map(c => c.category))];
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+  const categories = [lang === 'zh' ? '全部' : 'All', ...new Set(competitions.map(c => c.category))];
+
+  useEffect(() => {
+    loadCompetitions();
+  }, []);
+
+  const loadCompetitions = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.competition.getList({
+        page: 1,
+        pageSize: 100,
+      });
+      if (response.success && response.data) {
+        // 映射后端数据到前端格式
+        const mappedData = response.data.items || response.data;
+        if (Array.isArray(mappedData)) {
+          setCompetitions(mappedData);
+        }
+      } else {
+        setError(response.message || (lang === 'zh' ? '加载竞赛列表失败' : 'Failed to load competitions'));
+      }
+    } catch (err: any) {
+      console.error('Failed to load competitions:', err);
+      setError(lang === 'zh' ? '网络错误，请稍后重试' : 'Network error, please try again');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredCompetitions = selectedCategory === (lang === 'zh' ? '全部' : 'All')
-    ? COMPETITIONS 
-    : COMPETITIONS.filter(c => c.category === selectedCategory);
+    ? competitions 
+    : competitions.filter(c => c.category === selectedCategory);
 
   return (
     <div className="space-y-8">
@@ -46,6 +78,33 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
           ))}
         </div>
       </div>
+
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+          <p className="mt-4 text-gray-500">{lang === 'zh' ? '加载中...' : 'Loading...'}</p>
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-xl text-center">
+          <i className="fas fa-exclamation-circle text-2xl mb-2"></i>
+          <p>{error}</p>
+          <button 
+            onClick={loadCompetitions}
+            className="mt-3 text-sm underline hover:no-underline"
+          >
+            {lang === 'zh' ? '重试' : 'Retry'}
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && competitions.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          <i className="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+          <p>{lang === 'zh' ? '暂无竞赛' : 'No competitions available'}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6">
         {filteredCompetitions.map(comp => {

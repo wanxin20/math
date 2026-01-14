@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { COMPETITIONS } from '../constants';
 import { Language, translations } from '../i18n';
+import api from '../services/api';
+import { Competition } from '../types';
 
 interface HomeProps {
   lang: Language;
@@ -10,6 +11,27 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ lang }) => {
   const t = translations[lang].home;
+  const [featuredCompetitions, setFeaturedCompetitions] = useState<Competition[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadFeaturedCompetitions();
+  }, []);
+
+  const loadFeaturedCompetitions = async () => {
+    setLoading(true);
+    try {
+      const response = await api.competition.getList({ page: 1, pageSize: 3 });
+      if (response.success && response.data) {
+        const competitions = response.data.items || response.data;
+        setFeaturedCompetitions(Array.isArray(competitions) ? competitions.slice(0, 3) : []);
+      }
+    } catch (error) {
+      console.error('Failed to load featured competitions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return (
     <div className="space-y-24 pb-12">
@@ -112,7 +134,24 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {COMPETITIONS.map(comp => (
+          {loading ? (
+            [1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden animate-pulse">
+                <div className="h-56 bg-gray-200"></div>
+                <div className="p-8">
+                  <div className="h-6 bg-gray-200 rounded mb-4 w-20"></div>
+                  <div className="h-8 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-8"></div>
+                  <div className="flex items-center justify-between">
+                    <div className="h-8 bg-gray-200 rounded w-16"></div>
+                    <div className="h-12 w-12 bg-gray-200 rounded-2xl"></div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : featuredCompetitions.length > 0 ? (
+            featuredCompetitions.map(comp => (
             <div key={comp.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500 group relative">
                 <div className="h-56 bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center relative overflow-hidden">
                    <div className="absolute inset-0 opacity-10 group-hover:scale-125 transition-transform duration-700">
@@ -135,7 +174,13 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
                    </div>
                 </div>
             </div>
-          ))}
+          ))
+          ) : (
+            <div className="col-span-3 text-center py-12 text-gray-500">
+              <i className="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+              <p>{lang === 'zh' ? '暂无竞赛信息' : 'No competitions available'}</p>
+            </div>
+          )}
         </div>
       </section>
 
