@@ -48,6 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                 <Link to="/admin/users" className={`text-sm font-medium transition ${isActive('/admin/users') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>用户管理</Link>
                 <Link to="/admin/competitions" className={`text-sm font-medium transition ${isActive('/admin/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>竞赛管理</Link>
                 <Link to="/admin/resources" className={`text-sm font-medium transition ${isActive('/admin/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>资源管理</Link>
+                <Link to="/admin/news" className={`text-sm font-medium transition ${isActive('/admin/news') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>公告管理</Link>
               </>
             )}
           </nav>
@@ -148,6 +149,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/resources') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
                       <i className="fas fa-folder-open w-8"></i>资源管理
+                    </Link>
+                    <Link 
+                      to="/admin/news" 
+                      onClick={closeMenu} 
+                      className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/news') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <i className="fas fa-bullhorn w-8"></i>公告管理
                     </Link>
                   </>
                 )}

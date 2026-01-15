@@ -5,7 +5,7 @@ export const translations = {
   zh: {
     nav: {
       home: '首页',
-      competitions: '论文评选',
+      competitions: '竞赛中心',
       resources: '教研资源',
       dashboard: '个人中心',
       login: '登录 / 注册',
@@ -14,10 +14,10 @@ export const translations = {
     },
     home: {
       heroTitle: '提升教学艺术，分享教育智慧',
-      heroSub: '欢迎来到XXXX教师专业发展与论文评选官方服务平台。在这里，您可以分享教学经验，参与高水平教研竞赛。',
+      heroSub: '欢迎来到XXXX教师专业发展与竞赛官方服务平台。在这里，您可以分享教学经验，参与高水平教研竞赛。',
       ctaRegister: '立即参加评选',
       ctaGuide: '撰写与提交指南',
-      popular: '热门教研类别',
+      popular: '竞赛类别',
       viewAll: '查看全部项目',
       process: '评选流程',
       newsTitle: '通知公告',

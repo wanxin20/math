@@ -169,6 +169,11 @@ export const registrationApi = {
       method: 'POST',
     });
   },
+
+  // 管理员：获取某个竞赛的所有报名记录
+  getByCompetitionId: async (competitionId: string) => {
+    return request(`/registrations/competition/${competitionId}`);
+  },
 };
 
 // 支付相关 API
@@ -354,19 +359,58 @@ export const resourceApi = {
 
 // 新闻公告相关 API
 export const newsApi = {
-  // 获取新闻列表
+  // 获取已发布新闻列表（公开）
   getList: async (params?: {
     page?: number;
-    limit?: number;
-    type?: string;
+    pageSize?: number;
   }) => {
     const query = new URLSearchParams(params as any).toString();
     return request(`/news?${query}`);
   },
 
-  // 获取新闻详情
-  getDetail: async (id: string) => {
+  // 获取新闻详情（公开）
+  getDetail: async (id: number) => {
     return request(`/news/${id}`);
+  },
+
+  // 管理员：获取所有新闻列表
+  adminGetList: async (params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+  }) => {
+    const query = new URLSearchParams(params as any).toString();
+    return request(`/news/admin/all?${query}`);
+  },
+
+  // 管理员：创建新闻
+  adminCreate: async (data: any) => {
+    return request('/news', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // 管理员：更新新闻
+  adminUpdate: async (id: number, data: any) => {
+    return request(`/news/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // 管理员：删除新闻
+  adminDelete: async (id: number) => {
+    return request(`/news/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // 管理员：切换发布状态
+  adminTogglePublish: async (id: number) => {
+    return request(`/news/${id}/toggle-publish`, {
+      method: 'POST',
+    });
   },
 };
 

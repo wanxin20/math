@@ -9,13 +9,25 @@ interface HomeProps {
   lang: Language;
 }
 
+interface NewsItem {
+  id: number;
+  title: string;
+  content: string;
+  publishDate: string;
+  isPublished: boolean;
+  viewCount: number;
+}
+
 const Home: React.FC<HomeProps> = ({ lang }) => {
   const t = translations[lang].home;
   const [featuredCompetitions, setFeaturedCompetitions] = useState<Competition[]>([]);
+  const [newsList, setNewsList] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingNews, setLoadingNews] = useState(true);
 
   useEffect(() => {
     loadFeaturedCompetitions();
+    loadNews();
   }, []);
 
   const loadFeaturedCompetitions = async () => {
@@ -30,6 +42,21 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
       console.error('Failed to load featured competitions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadNews = async () => {
+    setLoadingNews(true);
+    try {
+      const response = await api.news.getList({ page: 1, pageSize: 6 });
+      if (response.success && response.data) {
+        const news = response.data.items || response.data;
+        setNewsList(Array.isArray(news) ? news : []);
+      }
+    } catch (error) {
+      console.error('Failed to load news:', error);
+    } finally {
+      setLoadingNews(false);
     }
   };
   
@@ -76,49 +103,61 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
         </div>
       </section>
 
-      {/* Stats and News Combined Grid */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Left: Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: '注册教师', value: '12万+', icon: 'fa-chalkboard-teacher', color: 'bg-blue-500' },
-            { label: '收录论文', value: '8.5万', icon: 'fa-file-alt', color: 'bg-orange-500' },
-            { label: '覆盖学校', value: '4500+', icon: 'fa-school', color: 'bg-purple-500' },
-            { label: '评审专家', value: '1200人', icon: 'fa-user-graduate', color: 'bg-emerald-500' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-md transition group">
-              <div className={`${stat.color} w-10 h-10 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                <i className={`fas ${stat.icon}`}></i>
-              </div>
-              <div className="text-2xl font-black text-gray-900 mb-1">{stat.value}</div>
-              <div className="text-gray-400 text-xs font-medium uppercase tracking-widest">{stat.label}</div>
-            </div>
-          ))}
+      {/* News Announcements Section */}
+      <section className="bg-white rounded-[2rem] p-8 md:p-12 border border-gray-100 shadow-sm">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <span className="w-1.5 h-8 bg-indigo-600 rounded-full"></span>
+            {t.newsTitle}
+          </h2>
+          <button className="text-sm text-indigo-600 font-semibold hover:underline flex items-center gap-2">
+            {t.newsMore}
+            <i className="fas fa-arrow-right text-xs"></i>
+          </button>
         </div>
-
-        {/* Right: News List */}
-        <div className="lg:col-span-2 bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
-              {t.newsTitle}
-            </h2>
-            <button className="text-sm text-indigo-600 font-semibold hover:underline">{t.newsMore}</button>
-          </div>
+        {loadingNews ? (
           <div className="space-y-6">
-            {t.newsList.map((news, i) => (
-              <div key={i} className="flex items-center gap-6 group cursor-pointer">
-                <div className="shrink-0 text-center">
-                   <div className="text-sm font-bold text-gray-400 group-hover:text-indigo-600 transition">{news.date.split('-')[1]}-{news.date.split('-')[2]}</div>
-                   <div className="text-[10px] text-gray-300 font-medium">{news.date.split('-')[0]}</div>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex items-center gap-6 animate-pulse">
+                <div className="shrink-0 w-16">
+                  <div className="h-8 bg-gray-200 rounded"></div>
                 </div>
-                <div className="h-0.5 w-4 bg-gray-100 group-hover:w-8 transition-all group-hover:bg-indigo-200"></div>
-                <div className="text-gray-700 font-medium group-hover:text-indigo-700 transition flex-1 truncate">{news.title}</div>
-                <i className="fas fa-chevron-right text-[10px] text-gray-200 group-hover:text-indigo-400"></i>
+                <div className="h-0.5 w-4 bg-gray-200"></div>
+                <div className="flex-1">
+                  <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        ) : newsList.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {newsList.map((news) => {
+              const date = new Date(news.publishDate);
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              const year = date.getFullYear();
+              
+              return (
+                <div key={news.id} className="flex items-center gap-6 group cursor-pointer hover:bg-gray-50 p-4 rounded-xl transition">
+                  <div className="shrink-0 text-center">
+                    <div className="text-sm font-bold text-gray-400 group-hover:text-indigo-600 transition">{month}-{day}</div>
+                    <div className="text-[10px] text-gray-300 font-medium">{year}</div>
+                  </div>
+                  <div className="h-0.5 w-4 bg-gray-100 group-hover:w-8 transition-all group-hover:bg-indigo-200"></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-gray-700 font-medium group-hover:text-indigo-700 transition truncate">{news.title}</div>
+                  </div>
+                  <i className="fas fa-chevron-right text-[10px] text-gray-200 group-hover:text-indigo-400"></i>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            <i className="fas fa-newspaper text-6xl text-gray-300 mb-4"></i>
+            <p>{lang === 'zh' ? '暂无公告' : 'No announcements'}</p>
+          </div>
+        )}
       </section>
 
       {/* Popular Research Categories */}

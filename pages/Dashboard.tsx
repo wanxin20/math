@@ -117,7 +117,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
   // 查看论文
   const handleViewPaper = (fileUrl: string) => {
     if (fileUrl) {
-      window.open(fileUrl, '_blank');
+      // 如果是相对路径，拼接完整的后端地址
+      const fullUrl = fileUrl.startsWith('http') 
+        ? fileUrl 
+        : `http://localhost:3000${fileUrl}`;
+      window.open(fullUrl, '_blank');
     }
   };
 
@@ -196,13 +200,36 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
               <p className="text-gray-500">{lang === 'zh' ? '暂无报名记录' : 'No registrations yet'}</p>
             </div>
           )}
-          {userCompetitions.map(reg => (
+          {userCompetitions.map(reg => {
+            // 判断是否已过截止日期
+            const deadline = reg.competition?.deadline;
+            const isPastDeadline = deadline ? new Date(deadline) < new Date() : false;
+            
+            return (
             <div key={reg.competitionId || reg.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-gray-900">
-                  {reg.competition?.title || reg.competitionId || (lang === 'zh' ? '竞赛' : 'Competition')}
-                </h3>
-                <span className="text-xs font-bold px-2 py-1 rounded bg-blue-50 text-blue-600">{getStatusText(reg.status)}</span>
+              <div className="flex justify-between items-start md:items-center mb-6 gap-2 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 mb-1">
+                    {reg.competition?.title || (lang === 'zh' ? '竞赛' : 'Competition')}
+                  </h3>
+                  {deadline && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <i className="fas fa-clock text-gray-400"></i>
+                      <span className="text-gray-500">
+                        {lang === 'zh' ? '截止时间：' : 'Deadline: '}
+                        <span className={isPastDeadline ? 'text-red-500 font-semibold' : 'text-gray-700'}>
+                          {new Date(deadline).toLocaleDateString('zh-CN')}
+                        </span>
+                        {isPastDeadline && (
+                          <span className="ml-2 text-red-500 font-semibold">
+                            ({lang === 'zh' ? '已截止' : 'Closed'})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs font-bold px-2 py-1 rounded bg-blue-50 text-blue-600 whitespace-nowrap">{getStatusText(reg.status)}</span>
               </div>
               
               <div className="flex justify-between gap-2 mb-8">
@@ -225,34 +252,62 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
                    <button onClick={() => handleLocalPay(reg.competitionId)} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold w-full">{t.actions.payNow}</button>
                  )}
                  {reg.status === RegistrationStatus.PAID && (
-                   <label className="cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center">
-                     <input 
-                       type="file" 
-                       className="hidden" 
-                       accept=".pdf,.doc,.docx,.zip"
-                       onChange={(e) => e.target.files?.[0] && handleLocalSubmit(reg.competitionId, e.target.files[0])} 
-                     />
-                     {t.actions.upload}
-                   </label>
+                   isPastDeadline ? (
+                     <div className="text-gray-400 px-6 py-2 text-sm text-center w-full border border-gray-200 rounded-lg bg-gray-50">
+                       <i className="fas fa-lock mr-2"></i>
+                       {lang === 'zh' ? '已过提交截止时间' : 'Submission Closed'}
+                     </div>
+                   ) : (
+                     <label className="cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition">
+                       <input 
+                         type="file" 
+                         className="hidden" 
+                         accept=".pdf,.doc,.docx,.zip"
+                         onChange={(e) => e.target.files?.[0] && handleLocalSubmit(reg.competitionId, e.target.files[0])} 
+                       />
+                       {t.actions.upload}
+                     </label>
+                   )
                  )}
                  {reg.status === RegistrationStatus.SUBMITTED && (
-                   <div className="flex items-center justify-between w-full gap-2">
-                     <div className="text-green-600 font-bold text-sm flex items-center gap-2">
-                       <i className="fas fa-check-circle"></i>
-                       {lang === 'zh' ? '已提交' : 'Submitted'}: {reg.paperSubmission?.title || reg.submissionFile}
+                   <div className="flex flex-col gap-3 w-full">
+                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-2">
+                       <div className="text-green-600 font-bold text-sm flex items-center gap-2 flex-1 min-w-0">
+                         <i className="fas fa-check-circle flex-shrink-0"></i>
+                         <span className="truncate">
+                           {lang === 'zh' ? '已提交' : 'Submitted'}: {reg.paperSubmission?.paper_title || reg.paperSubmission?.paperTitle || reg.paperSubmission?.submission_file_name || reg.submissionFile || '论文.pdf'}
+                         </span>
+                       </div>
+                       <button 
+                         onClick={() => handleViewPaper(
+                           reg.paperSubmission?.submission_file_url || 
+                           reg.paperSubmission?.submissionFileUrl || 
+                           reg.paperSubmission?.fileUrl
+                         )}
+                         className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition whitespace-nowrap flex-shrink-0"
+                       >
+                         <i className="fas fa-eye mr-1"></i>
+                         {lang === 'zh' ? '查看论文' : 'View Paper'}
+                       </button>
                      </div>
-                     <button 
-                       onClick={() => handleViewPaper(reg.paperSubmission?.fileUrl || reg.paperSubmission?.submissionFileUrl)}
-                       className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition"
-                     >
-                       <i className="fas fa-eye mr-1"></i>
-                       {lang === 'zh' ? '查看论文' : 'View Paper'}
-                     </button>
+                     {!isPastDeadline && (
+                       <label className="cursor-pointer bg-orange-50 border border-orange-200 text-orange-600 px-4 py-2 rounded-lg text-xs font-medium w-full text-center hover:bg-orange-100 transition">
+                         <input 
+                           type="file" 
+                           className="hidden" 
+                           accept=".pdf,.doc,.docx,.zip"
+                           onChange={(e) => e.target.files?.[0] && handleLocalSubmit(reg.competitionId, e.target.files[0])} 
+                         />
+                         <i className="fas fa-redo mr-2"></i>
+                         {lang === 'zh' ? '重新提交论文' : 'Resubmit Paper'}
+                       </label>
+                     )}
                    </div>
                  )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
         <div className="space-y-6">
            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">

@@ -25,8 +25,9 @@ const Resources: React.FC = () => {
     }
   };
 
-  const paperTemplates = resources.filter(r => r.category === 'template' || r.type === 'doc');
-  const ruleDocuments = resources.filter(r => r.category === 'rules' || r.type === 'pdf');
+  // 根据数据库中的 category 字段分组
+  const paperTemplates = resources.filter(r => r.category === '论文模板');
+  const ruleDocuments = resources.filter(r => r.category !== '论文模板');
 
   return (
     <div className="space-y-12">

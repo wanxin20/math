@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { competitionApi, uploadApi } from '../services/api';
 
 interface Competition {
@@ -18,6 +19,7 @@ interface Competition {
 }
 
 const AdminCompetitions: React.FC = () => {
+  const navigate = useNavigate();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -35,7 +37,7 @@ const AdminCompetitions: React.FC = () => {
     deadline: '',
     startDate: '',
     status: 'draft',
-    coverImageUrl: '',
+    coverImageUrl: undefined, // 改为 undefined，允许不上传封面图
     guidelines: '',
     awardInfo: '',
   };
@@ -135,11 +137,19 @@ const AdminCompetitions: React.FC = () => {
     if (!editingCompetition) return;
 
     try {
+      // 过滤掉不应该传递给API的字段
+      const { id, currentParticipants, createdAt, updatedAt, ...competitionData } = editingCompetition;
+
+      // 如果 coverImageUrl 为空字符串，则设为 undefined（允许不上传封面图）
+      if (competitionData.coverImageUrl === '') {
+        competitionData.coverImageUrl = undefined;
+      }
+
       let response;
       if (isCreating) {
-        response = await competitionApi.adminCreate(editingCompetition);
+        response = await competitionApi.adminCreate(competitionData);
       } else {
-        response = await competitionApi.adminUpdate(editingCompetition.id!, editingCompetition);
+        response = await competitionApi.adminUpdate(editingCompetition.id!, competitionData);
       }
 
       if (response.success) {
@@ -336,6 +346,29 @@ const AdminCompetitions: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ padding: '16px' }}>
+                      <button
+                        onClick={() => navigate(`/admin/competitions/${competition.id}`)}
+                        style={{
+                          marginRight: '8px',
+                          padding: '6px 12px',
+                          backgroundColor: '#ecfdf5',
+                          color: '#059669',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#d1fae5';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#ecfdf5';
+                        }}
+                      >
+                        查看
+                      </button>
                       <button
                         onClick={() => handleEdit(competition)}
                         style={{
@@ -703,7 +736,7 @@ const AdminCompetitions: React.FC = () => {
                     color: '#374151',
                     fontSize: '14px'
                   }}>
-                    封面图片
+                    封面图片 <span style={{ color: '#9ca3af', fontWeight: '400', fontSize: '12px' }}>(可选)</span>
                   </label>
                   <div style={{ 
                     border: '2px dashed #e5e7eb',
