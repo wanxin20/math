@@ -61,7 +61,7 @@ async function bootstrap() {
   // Swagger文档配置
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('教师教研论文评选平台 API')
+      .setTitle('教师竞赛平台 API')
       .setDescription('Teacher Research Paper Selection Platform API Documentation')
       .setVersion('1.0')
       .addBearerAuth(
@@ -101,7 +101,7 @@ async function bootstrap() {
   console.log(`
   ╔═══════════════════════════════════════════════════════════════╗
   ║                                                               ║
-  ║   🚀 教师教研论文评选平台后端服务已启动                        ║
+  ║   🚀 教师竞赛平台后端服务已启动                        ║
   ║                                                               ║
   ║   📝 应用运行在: http://localhost:${port}                        ║
   ║   📖 API文档地址: http://localhost:${port}/api-docs             ║

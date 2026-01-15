@@ -24,7 +24,7 @@ export class PapersService {
   ) {}
 
   /**
-   * 提交论文
+   * 提交论文（支持首次提交和重新提交）
    */
   async create(userId: string, createPaperSubmissionDto: CreatePaperSubmissionDto) {
     const { registrationId, ...paperData } = createPaperSubmissionDto;
@@ -38,33 +38,41 @@ export class PapersService {
       throw new NotFoundException('报名记录不存在');
     }
 
-    if (registration.status !== RegistrationStatus.PAID) {
+    // 允许 PAID（已支付）或 SUBMITTED（已提交，重新提交）状态提交论文
+    if (registration.status !== RegistrationStatus.PAID && 
+        registration.status !== RegistrationStatus.SUBMITTED) {
       throw new BadRequestException('请先完成支付');
     }
 
-    // 2. 检查是否已提交论文
+    // 2. 检查是否已提交论文（支持重新提交）
     const existingSubmission = await this.papersRepository.findOne({
       where: { registrationId },
     });
 
+    let savedPaper;
+
     if (existingSubmission) {
-      throw new ConflictException('该报名记录已提交论文');
+      // 已存在论文记录，执行更新（重新提交）
+      Object.assign(existingSubmission, paperData);
+      existingSubmission.submissionTime = new Date();
+      savedPaper = await this.papersRepository.save(existingSubmission);
+      this.logger.log(`用户 ${userId} 重新提交论文: ${paperData.paperTitle}`);
+    } else {
+      // 首次提交，创建新记录
+      const paperSubmission = this.papersRepository.create({
+        registrationId,
+        ...paperData,
+      });
+      savedPaper = await this.papersRepository.save(paperSubmission);
+      this.logger.log(`用户 ${userId} 首次提交论文: ${paperData.paperTitle}`);
     }
 
-    // 3. 创建论文提交记录
-    const paperSubmission = this.papersRepository.create({
-      registrationId,
-      ...paperData,
-    });
-
-    const savedPaper = await this.papersRepository.save(paperSubmission);
-
-    // 4. 更新报名状态为已提交
-    await this.registrationsRepository.update(registrationId, {
-      status: RegistrationStatus.SUBMITTED,
-    });
-
-    this.logger.log(`用户 ${userId} 提交论文成功: ${paperData.paperTitle}`);
+    // 3. 确保报名状态为已提交
+    if (registration.status !== RegistrationStatus.SUBMITTED) {
+      await this.registrationsRepository.update(registrationId, {
+        status: RegistrationStatus.SUBMITTED,
+      });
+    }
 
     return savedPaper;
   }

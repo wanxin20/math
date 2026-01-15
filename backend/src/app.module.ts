@@ -46,12 +46,12 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.get('DB_HOST'),
+        type: 'mysql' as const,
+        host: configService.get<string>('DB_HOST'),
         port: configService.get<number>('DB_PORT'),
-        username: configService.get('DB_USERNAME'),
-        password: configService.get('DB_PASSWORD'),
-        database: configService.get('DB_DATABASE'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
         entities: [
           User,
           Competition,
@@ -62,12 +62,16 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
           Resource,
           NewsAnnouncement,
         ],
-        synchronize: false, // 生产环境必须为false，使用migration管理
+        synchronize: false, // 开发环境自动同步，生产环境使用migration
         logging: configService.get('NODE_ENV') === 'development',
         timezone: '+08:00',
         charset: 'utf8mb4',
+        // 关键：通过extra传递给mysql2驱动的选项
         extra: {
           connectionLimit: 10,
+          charset: 'utf8mb4',
+          // 在连接时设置字符集
+          initSqls: ['SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci'],
         },
       }),
       inject: [ConfigService],

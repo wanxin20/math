@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { RegistrationsService } from './registrations.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { AdminGuard } from '@/common/guards/admin.guard';
 import { CurrentUser } from '@/common/decorators/user.decorator';
 
 @ApiTags('Registrations')
@@ -43,5 +44,12 @@ export class RegistrationsController {
   ) {
     const hasRegistered = await this.registrationsService.hasRegistered(userId, competitionId);
     return { hasRegistered };
+  }
+
+  @Get('competition/:competitionId')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: '管理员：获取某个竞赛的所有报名记录' })
+  async findByCompetitionId(@Param('competitionId') competitionId: string) {
+    return this.registrationsService.findByCompetitionId(competitionId);
   }
 }

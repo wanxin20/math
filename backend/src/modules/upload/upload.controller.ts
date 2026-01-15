@@ -82,10 +82,21 @@ export class UploadController {
     const folder = file.mimetype.startsWith('image/') ? 'images' : 'files';
     const fileUrl = `/uploads/${folder}/${file.filename}`;
 
+    // 修复中文文件名编码问题
+    // file.originalname在Windows下可能是Latin1编码，需要转换为UTF-8
+    let originalName = file.originalname;
+    try {
+      // 尝试将Latin1解码为UTF-8
+      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    } catch (error) {
+      // 如果转换失败，使用原始文件名
+      console.warn('文件名编码转换失败，使用原始文件名', error);
+    }
+
     // 直接返回数据对象，TransformInterceptor会自动包装
     return {
       filename: file.filename,
-      originalname: file.originalname,
+      originalname: originalName,
       mimetype: file.mimetype,
       size: file.size,
       url: fileUrl,
@@ -120,10 +131,18 @@ export class UploadController {
 
     const fileUrl = `/uploads/images/${file.filename}`;
 
+    // 修复中文文件名编码问题
+    let originalName = file.originalname;
+    try {
+      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    } catch (error) {
+      console.warn('文件名编码转换失败，使用原始文件名', error);
+    }
+
     // 直接返回数据对象，TransformInterceptor会自动包装
     return {
       filename: file.filename,
-      originalname: file.originalname,
+      originalname: originalName,
       mimetype: file.mimetype,
       size: file.size,
       url: fileUrl,

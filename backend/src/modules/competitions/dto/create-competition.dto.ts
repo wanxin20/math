@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, IsDateString } from
 import { CompetitionStatus } from '@/common/enums/competition-status.enum';
 
 export class CreateCompetitionDto {
-  @ApiProperty({ description: '评选标题', example: '2024年度基础教育论文评选' })
+  @ApiProperty({ description: '竞赛标题', example: '2024年度基础教育竞赛' })
   @IsString()
   @IsNotEmpty()
   title: string;

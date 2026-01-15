@@ -1,7 +1,7 @@
 {
   "name": "teacher-research-platform-backend",
   "version": "1.0.0",
-  "description": "教师教研论文评选平台后端服务",
+  "description": "教师竞赛平台后端服务",
   "author": "Your Team",
   "private": true,
   "license": "MIT",

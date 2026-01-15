@@ -98,6 +98,15 @@ export class RegistrationsService {
       id: reg.id,
       competitionId: reg.competitionId,
       competitionTitle: reg.competition?.title,
+      // 返回完整的 competition 对象（包括 deadline 等字段）
+      competition: reg.competition ? {
+        id: reg.competition.id,
+        title: reg.competition.title,
+        category: reg.competition.category,
+        deadline: reg.competition.deadline,
+        fee: reg.competition.fee,
+        status: reg.competition.status,
+      } : null,
       status: reg.status,
       registrationTime: reg.registrationTime,
       payment: reg.payments?.[0],
@@ -143,5 +152,37 @@ export class RegistrationsService {
     }
 
     this.logger.log(`报名记录 ${id} 状态更新为 ${status}`);
+  }
+
+  /**
+   * 管理员：获取某个竞赛的所有报名记录
+   */
+  async findByCompetitionId(competitionId: string) {
+    const registrations = await this.registrationsRepository.find({
+      where: { competitionId },
+      relations: ['user', 'competition', 'payments', 'paperSubmission'],
+      order: { registrationTime: 'DESC' },
+    });
+
+    // 返回格式化数据
+    return registrations.map((reg) => ({
+      id: reg.id,
+      userId: reg.userId,
+      // 用户信息
+      user: {
+        id: reg.user?.id || reg.userId,
+        name: reg.user?.name || '未知用户',
+        email: reg.user?.email || '',
+        institution: reg.user?.institution || '',
+        title: reg.user?.title || '',
+      },
+      competitionId: reg.competitionId,
+      competition: reg.competition,
+      status: reg.status,
+      registrationTime: reg.registrationTime,
+      payment: reg.payments?.[0],
+      paperSubmission: reg.paperSubmission,
+      notes: reg.notes,
+    }));
   }
 }

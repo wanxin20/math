@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserStatus } from '@/common/enums/user-status.enum';
 
 @Injectable()
 export class UsersService {
@@ -92,10 +93,10 @@ export class UsersService {
   async getStatistics() {
     const total = await this.usersRepository.count();
     const activeUsers = await this.usersRepository.count({
-      where: { status: 'active' },
+      where: { status: UserStatus.ACTIVE },
     });
     const suspendedUsers = await this.usersRepository.count({
-      where: { status: 'suspended' },
+      where: { status: UserStatus.SUSPENDED },
     });
 
     return {
