@@ -5,13 +5,16 @@ import {
   UseInterceptors,
   UseGuards,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Request } from 'express';
 
 // 确保上传目录存在
 const uploadDir = join(process.cwd(), 'uploads');
@@ -42,6 +45,25 @@ const storage = diskStorage({
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class UploadController {
+  constructor(private configService: ConfigService) {}
+
+  /**
+   * 生成文件访问 URL
+   * - 如果配置了 APP_URL，使用完整 URL（生产环境推荐）
+   * - 否则使用相对路径（开发环境或 Nginx 反向代理）
+   */
+  private getFileUrl(req: Request, relativePath: string): string {
+    const appUrl = this.configService.get<string>('APP_URL');
+    
+    if (appUrl) {
+      // 使用配置的完整 URL（生产环境）
+      return `${appUrl}${relativePath}`;
+    }
+    
+    // 使用相对路径（开发环境或 Nginx 代理）
+    // 前端会自动拼接当前域名
+    return relativePath;
+  }
   @Post('file')
   @ApiOperation({ summary: '上传文件' })
   @ApiConsumes('multipart/form-data')
@@ -74,13 +96,14 @@ export class UploadController {
       },
     }),
   )
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
     if (!file) {
       throw new BadRequestException('请选择要上传的文件');
     }
 
     const folder = file.mimetype.startsWith('image/') ? 'images' : 'files';
-    const fileUrl = `/uploads/${folder}/${file.filename}`;
+    const relativePath = `/uploads/${folder}/${file.filename}`;
+    const fileUrl = this.getFileUrl(req, relativePath);
 
     // 修复中文文件名编码问题
     // file.originalname在Windows下可能是Latin1编码，需要转换为UTF-8
@@ -124,12 +147,13 @@ export class UploadController {
       },
     }),
   )
-  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadImage(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
     if (!file) {
       throw new BadRequestException('请选择要上传的图片');
     }
 
-    const fileUrl = `/uploads/images/${file.filename}`;
+    const relativePath = `/uploads/images/${file.filename}`;
+    const fileUrl = this.getFileUrl(req, relativePath);
 
     // 修复中文文件名编码问题
     let originalName = file.originalname;
