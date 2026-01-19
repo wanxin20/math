@@ -7,12 +7,6 @@
 
 set -e
 
-# 配置
-SOURCE="mysql://root:7d8k64zs@dbconn.sealosgzg.site:36594/teacher_research_platform"
-TARGET_USER="root"
-TARGET_PASS="Szmathweb666!"
-TARGET_DB="teacher_research_platform"
-
 BACKUP_DIR="./database_backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DUMP_FILE="${BACKUP_DIR}/dump_${TIMESTAMP}.sql"

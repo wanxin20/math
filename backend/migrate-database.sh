@@ -15,22 +15,6 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # ================================================================
-# 源数据库配置（远程数据库）
-# ================================================================
-SOURCE_HOST="dbconn.sealosgzg.site"
-SOURCE_PORT="36594"
-SOURCE_USER="root"
-SOURCE_PASSWORD="7d8k64zs"
-SOURCE_DATABASE="teacher_research_platform"
-
-# ================================================================
-# 目标数据库配置（本地数据库）
-# ================================================================
-TARGET_HOST="localhost"
-TARGET_PORT="3306"
-TARGET_USER="math"
-TARGET_PASSWORD="Szmathweb666!"
-TARGET_DATABASE="teacher_research_platform"
 
 # ================================================================
 # 备份配置
