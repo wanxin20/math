@@ -1,5 +1,6 @@
 // API 配置和工具
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+// 开发环境使用完整URL，生产环境使用相对路径（由Nginx代理）
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 interface ApiResponse<T = any> {
   success: boolean;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { competitionApi, uploadApi } from '../services/api';
+import { API_BASE_URL } from '../constants';
 
 interface Competition {
   id: string;
@@ -114,7 +115,7 @@ const AdminCompetitions: React.FC = () => {
       const response = await uploadApi.uploadImage(file);
       if (response.success) {
         // 获取完整的URL（后端返回的URL已经包含/uploads前缀）
-        const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/api\/v1$/, '');
+        const baseUrl = API_BASE_URL.replace(/\/api\/v1$/, '');
         const fullUrl = `${baseUrl}${response.data.url}`;
         
         setEditingCompetition({

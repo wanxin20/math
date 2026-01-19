@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, UserRegistration, RegistrationStatus } from '../types';
 import { Language, translations } from '../i18n';
 import api from '../services/api';
+import { API_BASE_URL } from '../constants';
 
 interface DashboardProps {
   user: User;
@@ -117,10 +118,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
   // 查看论文
   const handleViewPaper = (fileUrl: string) => {
     if (fileUrl) {
-      // 如果是相对路径，拼接完整的后端地址
+      // 如果是相对路径，拼接基础URL（去掉/api/v1）
+      const baseUrl = API_BASE_URL.replace(/\/api\/v1$/, '');
       const fullUrl = fileUrl.startsWith('http') 
         ? fileUrl 
-        : `http://localhost:3000${fileUrl}`;
+        : `${baseUrl}${fileUrl}`;
       window.open(fullUrl, '_blank');
     }
   };

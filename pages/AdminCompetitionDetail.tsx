@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { API_BASE_URL } from '../constants';
 
 interface Registration {
   id: number;
@@ -90,9 +91,10 @@ const AdminCompetitionDetail: React.FC = () => {
 
   const handleViewPaper = (fileUrl: string) => {
     if (fileUrl) {
+      const baseUrl = API_BASE_URL.replace(/\/api\/v1$/, '');
       const fullUrl = fileUrl.startsWith('http') 
         ? fileUrl 
-        : `http://localhost:3000${fileUrl}`;
+        : `${baseUrl}${fileUrl}`;
       window.open(fullUrl, '_blank');
     }
   };
