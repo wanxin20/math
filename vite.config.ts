@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         },
       },
       plugins: [react()],
-      base: '/math/',
+      base: '/',  // 修改为根路径
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
