@@ -1,6 +1,6 @@
 {
-  "name": "XXXX Competition Portal",
-  "description": "A comprehensive platform for XXXX, supporting user registration, competition sign-up, payment processing, resource downloads, and paper submission.",
+  "name": "shenzhen mathematics teacher competition portal",
+  "description": "A comprehensive platform for shenzhen mathematics teacher competition, supporting user registration, competition sign-up, payment processing, resource downloads, and paper submission.",
   "requestFramePermissions": [
     "camera",
     "microphone"

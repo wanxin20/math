@@ -12,7 +12,6 @@ import AdminResources from './pages/AdminResources';
 import AdminCompetitions from './pages/AdminCompetitions';
 import AdminCompetitionDetail from './pages/AdminCompetitionDetail';
 import AdminNews from './pages/AdminNews';
-import AIChat from './components/AIChat';
 import { User, UserRegistration, RegistrationStatus } from './types';
 import { Language, translations } from './i18n';
 import api from './services/api';
@@ -102,23 +101,14 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePay = (compId: string) => {
-    // 更新localStorage中的状态（保持同步）
-    setRegistrations(prev => prev.map(r => 
-      r.competitionId === compId ? { ...r, status: RegistrationStatus.PAID, paymentTime: new Date().toISOString() } : r
-    ));
+  const handlePay = async (compId: string) => {
+    // 从后端重新加载报名列表，确保状态同步
+    await loadUserRegistrations();
   };
 
-  const handleSubmitPaper = (compId: string, fileName: string) => {
-    setRegistrations(prev => prev.map(r => 
-      r.competitionId === compId ? { 
-        ...r, 
-        status: RegistrationStatus.SUBMITTED, 
-        submissionFile: fileName, 
-        submissionTime: new Date().toISOString() 
-      } : r
-    ));
-    alert(lang === 'zh' ? `论文《${fileName}》提交成功！` : `Paper "${fileName}" submitted!`);
+  const handleSubmitPaper = async (compId: string, fileName: string) => {
+    // 从后端重新加载报名列表，确保状态同步
+    await loadUserRegistrations();
   };
 
   const handleLogout = () => {
@@ -171,7 +161,6 @@ const App: React.FC = () => {
           } />
         </Routes>
       </Layout>
-      <AIChat lang={lang} />
     </HashRouter>
   );
 };

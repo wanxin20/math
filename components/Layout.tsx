@@ -45,10 +45,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
             )}
             {user && user.role === 'admin' && (
               <>
-                <Link to="/admin/users" className={`text-sm font-medium transition ${isActive('/admin/users') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>用户管理</Link>
-                <Link to="/admin/competitions" className={`text-sm font-medium transition ${isActive('/admin/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>竞赛管理</Link>
-                <Link to="/admin/resources" className={`text-sm font-medium transition ${isActive('/admin/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>资源管理</Link>
-                <Link to="/admin/news" className={`text-sm font-medium transition ${isActive('/admin/news') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>公告管理</Link>
+                <Link to="/admin/users" className={`text-sm font-medium transition ${isActive('/admin/users') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.userMgmt}</Link>
+                <Link to="/admin/competitions" className={`text-sm font-medium transition ${isActive('/admin/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.compMgmt}</Link>
+                <Link to="/admin/resources" className={`text-sm font-medium transition ${isActive('/admin/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.resMgmt}</Link>
+                <Link to="/admin/news" className={`text-sm font-medium transition ${isActive('/admin/news') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.newsMgmt}</Link>
               </>
             )}
           </nav>
@@ -134,28 +134,28 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/users') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
-                      <i className="fas fa-users-cog w-8"></i>用户管理
+                      <i className="fas fa-users-cog w-8"></i>{t.userMgmt}
                     </Link>
                     <Link 
                       to="/admin/competitions" 
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/competitions') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
-                      <i className="fas fa-trophy w-8"></i>竞赛管理
+                      <i className="fas fa-trophy w-8"></i>{t.compMgmt}
                     </Link>
                     <Link 
                       to="/admin/resources" 
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/resources') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
-                      <i className="fas fa-folder-open w-8"></i>资源管理
+                      <i className="fas fa-folder-open w-8"></i>{t.resMgmt}
                     </Link>
                     <Link 
                       to="/admin/news" 
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/news') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
-                      <i className="fas fa-bullhorn w-8"></i>公告管理
+                      <i className="fas fa-bullhorn w-8"></i>{t.newsMgmt}
                     </Link>
                   </>
                 )}
@@ -214,14 +214,14 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
            <div className="col-span-1 md:col-span-2">
             <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
               <i className="fas fa-feather-alt text-blue-500 text-2xl"></i>
-              <span className="text-xl font-bold text-white">XXXX</span>
+              <span className="text-xl font-bold text-white">深圳数学学会</span>
             </div>
             <p className="text-sm">Empowering the next generation of educators through research.</p>
            </div>
            <div className="text-xs">
              <h5 className="text-white font-bold mb-4 uppercase tracking-widest">{lang === 'zh' ? '联系我们' : 'Contact Us'}</h5>
-             <p>Email: support@xxxx-edu.cn</p>
-             <p>Tel: 400-XXX-XXXX</p>
+             <p>Email: szmath2025@163.com</p>
+       
            </div>
         </div>
       </footer>

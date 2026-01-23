@@ -10,11 +10,15 @@ export const translations = {
       dashboard: '个人中心',
       login: '登录 / 注册',
       logout: '退出登录',
-      title: 'XXXX教师论文竞赛平台'
+      title: '深圳数学学会教师论文竞赛平台',
+      userMgmt: '用户管理',
+      compMgmt: '竞赛管理',
+      resMgmt: '资源管理',
+      newsMgmt: '公告管理'
     },
     home: {
-      heroTitle: '提升教学艺术，分享教育智慧',
-      heroSub: '欢迎来到XXXX教师专业发展与竞赛官方服务平台。在这里，您可以分享教学经验，参与高水平教研竞赛。',
+      heroTitle: '提升数学艺术，分享教育智慧',
+      heroSub: '欢迎来到深圳数学学会教师专业发展与竞赛官方服务平台。在这里，您可以分享教学经验，参与高水平教研竞赛。',
       ctaRegister: '立即参加评选',
       ctaGuide: '撰写与提交指南',
       popular: '竞赛类别',
@@ -97,24 +101,22 @@ export const translations = {
       dashboard: 'Dashboard',
       login: 'Login / Register',
       logout: 'Logout',
-      title: 'XXXX Teacher Portal'
+      title: 'shenzhen mathematics Teacher Portal',
+      userMgmt: 'User Management',
+      compMgmt: 'Competition Management',
+      resMgmt: 'Resource Management',
+      newsMgmt: 'News Management'
     },
     home: {
-      heroTitle: 'Enhance Teaching Art, Share Wisdom',
+      heroTitle: 'Enhance Mathematics Art, Share Wisdom',
       heroSub: 'Official portal for teacher professional development and paper evaluation. Share experiences and participate in high-level research.',
       ctaRegister: 'Participate Now',
       ctaGuide: 'Writing Guide',
-      popular: 'Research Categories',
+      popular: 'Competition Categories',
       viewAll: 'View All',
-      process: 'Evaluation Process',
+      process: 'Selection Process',
       newsTitle: 'Announcements',
       newsMore: 'More',
-      newsList: [
-        { date: '2024-05-20', title: 'Notice on Formatting for 2024 Teaching Research Papers' },
-        { date: '2024-05-15', title: 'New LaTeX Template for Teaching Results Released' },
-        { date: '2024-05-10', title: 'Results of "Excellent Classroom" Innovation Selection' }
-      ],
-      partnersTitle: 'Academic Support & Partners',
       steps: [
         { title: 'Registration', desc: 'Create teacher profile' },
         { title: 'Application', desc: 'Choose category and apply' },

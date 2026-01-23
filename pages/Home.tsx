@@ -24,6 +24,8 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [showNewsModal, setShowNewsModal] = useState(false);
 
   useEffect(() => {
     loadFeaturedCompetitions();
@@ -58,6 +60,16 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
     } finally {
       setLoadingNews(false);
     }
+  };
+
+  const handleNewsClick = (news: NewsItem) => {
+    setSelectedNews(news);
+    setShowNewsModal(true);
+  };
+
+  const closeNewsModal = () => {
+    setShowNewsModal(false);
+    setTimeout(() => setSelectedNews(null), 300);
   };
   
   return (
@@ -138,7 +150,11 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
               const year = date.getFullYear();
               
               return (
-                <div key={news.id} className="flex items-center gap-6 group cursor-pointer hover:bg-gray-50 p-4 rounded-xl transition">
+                <div 
+                  key={news.id} 
+                  onClick={() => handleNewsClick(news)}
+                  className="flex items-center gap-6 group cursor-pointer hover:bg-gray-50 p-4 rounded-xl transition"
+                >
                   <div className="shrink-0 text-center">
                     <div className="text-sm font-bold text-gray-400 group-hover:text-indigo-600 transition">{month}-{day}</div>
                     <div className="text-[10px] text-gray-300 font-medium">{year}</div>
@@ -193,10 +209,20 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
             featuredCompetitions.map(comp => (
             <div key={comp.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500 group relative">
                 <div className="h-56 bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center relative overflow-hidden">
-                   <div className="absolute inset-0 opacity-10 group-hover:scale-125 transition-transform duration-700">
-                     <svg viewBox="0 0 200 200" className="w-full h-full"><path fill="#6366f1" d="M40,-64.1C51.6,-56.9,60.6,-45,67.6,-32C74.7,-19,79.9,-4.9,78.2,8.8C76.6,22.5,68.2,35.9,57.6,46.1C47.1,56.4,34.5,63.5,21,68.3C7.5,73.1,-7,75.6,-20.5,72C-34,68.4,-46.6,58.8,-56.3,47.1C-66,35.3,-72.9,21.5,-74.6,7.1C-76.3,-7.4,-72.8,-22.4,-65,-35.6C-57.2,-48.7,-45.1,-60.1,-31.6,-66.2C-18.1,-72.3,-3.3,-73.2,10.7,-68.9C24.7,-64.5,40,-64.1Z" transform="translate(100 100)" /></svg>
-                   </div>
-                   <i className={`fas ${comp.id === 'pedagogy-2024' ? 'fa-book-reader' : comp.id === 'innovation-2024' ? 'fa-chalkboard-teacher' : 'fa-laptop-code'} text-7xl text-indigo-300 relative z-10 group-hover:rotate-12 transition-transform`}></i>
+                   {comp.coverImageUrl ? (
+                     <img 
+                       src={comp.coverImageUrl} 
+                       alt={comp.title}
+                       className="w-full h-full object-cover"
+                     />
+                   ) : (
+                     <>
+                       <div className="absolute inset-0 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                         <svg viewBox="0 0 200 200" className="w-full h-full"><path fill="#6366f1" d="M40,-64.1C51.6,-56.9,60.6,-45,67.6,-32C74.7,-19,79.9,-4.9,78.2,8.8C76.6,22.5,68.2,35.9,57.6,46.1C47.1,56.4,34.5,63.5,21,68.3C7.5,73.1,-7,75.6,-20.5,72C-34,68.4,-46.6,58.8,-56.3,47.1C-66,35.3,-72.9,21.5,-74.6,7.1C-76.3,-7.4,-72.8,-22.4,-65,-35.6C-57.2,-48.7,-45.1,-60.1,-31.6,-66.2C-18.1,-72.3,-3.3,-73.2,10.7,-68.9C24.7,-64.5,40,-64.1Z" transform="translate(100 100)" /></svg>
+                       </div>
+                       <i className={`fas ${comp.id === 'pedagogy-2024' ? 'fa-book-reader' : comp.id === 'innovation-2024' ? 'fa-chalkboard-teacher' : 'fa-laptop-code'} text-7xl text-indigo-300 relative z-10 group-hover:rotate-12 transition-transform`}></i>
+                     </>
+                   )}
                 </div>
                 <div className="p-8">
                    <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">{comp.category}</span>
@@ -223,29 +249,6 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
         </div>
       </section>
 
-      {/* Partners Section */}
-      <section className="text-center">
-        <h2 className="text-sm font-black text-gray-400 uppercase tracking-[0.3em] mb-12">{t.partnersTitle}</h2>
-        <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-30 grayscale hover:grayscale-0 transition-all duration-500">
-           <div className="flex flex-col items-center gap-2">
-             <i className="fas fa-university text-4xl"></i>
-             <span className="text-[10px] font-bold">EDUCATIONAL ALLIANCE</span>
-           </div>
-           <div className="flex flex-col items-center gap-2">
-             <i className="fas fa-award text-4xl"></i>
-             <span className="text-[10px] font-bold">PEDAGOGY SOCIETY</span>
-           </div>
-           <div className="flex flex-col items-center gap-2">
-             <i className="fas fa-school text-4xl"></i>
-             <span className="text-[10px] font-bold">STATE SCHOOLS DEPT</span>
-           </div>
-           <div className="flex flex-col items-center gap-2">
-             <i className="fas fa-microchip text-4xl"></i>
-             <span className="text-[10px] font-bold">DIGITAL LEARNING</span>
-           </div>
-        </div>
-      </section>
-
       {/* Process Section (Visual Revamp) */}
       <section className="bg-indigo-50/50 rounded-[3rem] p-12 md:p-16 border border-indigo-100">
         <div className="text-center mb-16">
@@ -267,6 +270,83 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
           <div className="hidden md:block absolute top-10 left-[10%] right-[10%] h-0.5 bg-indigo-100 -z-0"></div>
         </div>
       </section>
+
+      {/* News Detail Modal */}
+      {showNewsModal && selectedNews && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={closeNewsModal}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-8 py-6 text-white relative">
+              <button 
+                onClick={closeNewsModal}
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition"
+              >
+                <i className="fas fa-times text-lg"></i>
+              </button>
+              <div className="flex items-center gap-3 mb-3">
+                <i className="fas fa-bullhorn text-2xl"></i>
+                <span className="text-sm font-bold uppercase tracking-wider opacity-90">
+                  {lang === 'zh' ? '通知公告' : 'Announcement'}
+                </span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold leading-tight pr-12">
+                {selectedNews.title}
+              </h2>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-8 py-6 overflow-y-auto max-h-[calc(80vh-180px)]">
+              {/* Publish Date & View Count */}
+              <div className="flex items-center gap-6 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-calendar-alt text-indigo-600"></i>
+                  <span className="font-medium">
+                    {lang === 'zh' ? '发布时间' : 'Published'}:
+                  </span>
+                  <span className="font-bold text-gray-700">
+                    {new Date(selectedNews.publishDate).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-eye text-indigo-600"></i>
+                  <span className="font-medium">
+                    {lang === 'zh' ? '浏览次数' : 'Views'}:
+                  </span>
+                  <span className="font-bold text-gray-700">{selectedNews.viewCount}</span>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="prose prose-indigo max-w-none">
+                <div 
+                  className="text-gray-700 leading-relaxed whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: selectedNews.content }}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={closeNewsModal}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-indigo-200"
+              >
+                {lang === 'zh' ? '关闭' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

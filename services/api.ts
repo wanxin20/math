@@ -197,10 +197,17 @@ export const paymentApi = {
     return request('/payments/my');
   },
 
-  // 模拟支付（开发测试用）
-  mockPayment: async (registrationId: number) => {
-    return request(`/payments/mock/${registrationId}`, {
+  // 微信支付：创建支付订单（生成二维码）
+  wechatCreate: async (registrationId: number) => {
+    return request(`/payments/wechat/create/${registrationId}`, {
       method: 'POST',
+    });
+  },
+
+  // 微信支付：查询订单状态
+  wechatQuery: async (registrationId: number) => {
+    return request(`/payments/wechat/query/${registrationId}`, {
+      method: 'GET',
     });
   },
 };

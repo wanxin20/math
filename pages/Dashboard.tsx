@@ -20,9 +20,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingResources, setLoadingResources] = useState(false);
+  
+  // 微信支付相关状态
+  const [paymentModal, setPaymentModal] = useState<{
+    show: boolean;
+    qrCodeUrl: string;
+    registrationId: number;
+    amount: number;
+    description: string;
+  } | null>(null);
+  const [paymentPolling, setPaymentPolling] = useState(false);
 
-  // 调用后端API进行模拟支付
-  const handleLocalPay = async (compId: string) => {
+  // 微信支付：创建支付订单并显示二维码
+  const handleWechatPay = async (compId: string) => {
     try {
       // 查找对应的报名记录
       const registration = myRegistrations.find(r => r.competitionId === compId);
@@ -31,30 +41,71 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
         return;
       }
 
-      // 调用后端模拟支付API
-      const result = await api.payment.mockPayment(registration.id);
+      // 调用后端创建微信支付订单
+      const result = await api.payment.wechatCreate(registration.id);
       
-      if (result.success) {
-        // 更新本地状态
-        setMyRegistrations(prev => prev.map(reg => 
-          reg.competitionId === compId ? { 
-            ...reg, 
-            status: RegistrationStatus.PAID,
-            payment: { paymentTime: new Date().toISOString() }
-          } : reg
-        ));
+      if (result.success && result.data) {
+        // 显示支付二维码弹窗
+        setPaymentModal({
+          show: true,
+          qrCodeUrl: result.data.codeUrl,
+          registrationId: registration.id,
+          amount: result.data.amount || registration.competition?.fee || 0,
+          description: result.data.description || registration.competition?.title || '',
+        });
         
-        // 同时调用父组件的方法（更新localStorage）
-        onPay(compId);
-        
-        alert(lang === 'zh' ? '模拟支付成功！' : 'Payment successful!');
+        // 开始轮询支付状态
+        startPaymentPolling(registration.id, compId);
       } else {
-        alert(result.message || (lang === 'zh' ? '支付失败' : 'Payment failed'));
+        alert(result.message || (lang === 'zh' ? '创建支付订单失败' : 'Failed to create payment order'));
       }
     } catch (error: any) {
-      console.error('Payment error:', error);
-      alert(lang === 'zh' ? '支付失败，请重试' : 'Payment failed, please try again');
+      console.error('Wechat payment error:', error);
+      alert(lang === 'zh' ? '创建支付订单失败，请重试' : 'Failed to create payment order, please try again');
     }
+  };
+
+  // 轮询支付状态
+  const startPaymentPolling = (registrationId: number, compId: string) => {
+    setPaymentPolling(true);
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const result = await api.payment.wechatQuery(registrationId);
+        
+        if (result.success && result.data) {
+          // 检查支付状态
+          if (result.data.orderStatus === 'SUCCESS' && result.data.paymentStatus === 'SUCCESS') {
+            // 支付成功
+            clearInterval(pollInterval);
+            setPaymentPolling(false);
+            setPaymentModal(null);
+            
+            // 从后端重新加载报名列表，确保状态同步
+            await loadMyRegistrations();
+            
+            // 调用父组件的方法（更新localStorage）
+            onPay(compId);
+            
+            alert(lang === 'zh' ? '支付成功！' : 'Payment successful!');
+          }
+        }
+      } catch (error) {
+        console.error('Payment polling error:', error);
+      }
+    }, 3000); // 每3秒查询一次
+
+    // 5分钟后停止轮询
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      setPaymentPolling(false);
+    }, 5 * 60 * 1000);
+  };
+
+  // 关闭支付弹窗
+  const closePaymentModal = () => {
+    setPaymentModal(null);
+    setPaymentPolling(false);
   };
 
   // 本地处理论文提交（连接真实API）
@@ -92,20 +143,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
         return;
       }
 
-      // 3. 更新本地状态
-      setMyRegistrations(prev => prev.map(reg => 
-        reg.competitionId === compId ? { 
-          ...reg, 
-          status: RegistrationStatus.SUBMITTED,
-          paperSubmission: {
-            title: originalname,
-            submissionTime: new Date().toISOString(),
-            fileUrl: fileUrl,
-          }
-        } : reg
-      ));
+      // 3. 从后端重新加载报名列表，确保状态同步
+      await loadMyRegistrations();
 
-      // 同时调用父组件的方法（更新localStorage）
+      // 调用父组件的方法（更新localStorage）
       onSubmit(compId, originalname);
 
       alert(lang === 'zh' ? '论文上传成功！' : 'Paper uploaded successfully!');
@@ -251,7 +292,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
 
               <div className="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
                  {reg.status === RegistrationStatus.PENDING_PAYMENT && (
-                   <button onClick={() => handleLocalPay(reg.competitionId)} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold w-full">{t.actions.payNow}</button>
+                   <button 
+                     onClick={() => handleWechatPay(reg.competitionId)} 
+                     className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold w-full transition flex items-center justify-center gap-2"
+                   >
+                     <i className="fab fa-weixin"></i>
+                     {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
+                   </button>
                  )}
                  {reg.status === RegistrationStatus.PAID && (
                    isPastDeadline ? (
@@ -339,6 +386,66 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
            </div>
         </div>
       </div>
+
+      {/* 微信支付二维码弹窗 */}
+      {paymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+            <button
+              onClick={closePaymentModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+            
+            <div className="text-center">
+              <div className="mb-4">
+                <i className="fab fa-weixin text-green-600 text-5xl"></i>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
+              </h3>
+              
+              <p className="text-gray-600 mb-4">
+                {paymentModal.description}
+              </p>
+              
+              <div className="text-3xl font-bold text-green-600 mb-6">
+                ¥{paymentModal.amount}
+              </div>
+              
+              {/* 二维码 */}
+              <div className="bg-white p-6 rounded-xl border-2 border-gray-200 inline-block mb-6">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(paymentModal.qrCodeUrl)}`}
+                  alt="Payment QR Code"
+                  className="w-48 h-48"
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                  {paymentPolling ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-600 border-t-transparent"></div>
+                      <span>{lang === 'zh' ? '等待支付中...' : 'Waiting for payment...'}</span>
+                    </>
+                  ) : (
+                    <span>{lang === 'zh' ? '请使用微信扫码支付' : 'Scan QR code with WeChat'}</span>
+                  )}
+                </div>
+                
+                <p className="text-xs text-gray-500">
+                  {lang === 'zh' 
+                    ? '支付完成后，页面将自动更新' 
+                    : 'Page will update automatically after payment'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
