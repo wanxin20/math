@@ -3,7 +3,11 @@ export enum RegistrationStatus {
   NOT_STARTED = 'NOT_STARTED',
   PENDING_PAYMENT = 'PENDING_PAYMENT',
   PAID = 'PAID',
-  SUBMITTED = 'SUBMITTED'
+  SUBMITTED = 'SUBMITTED',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  REVIEWED = 'REVIEWED',
+  AWARDED = 'AWARDED',
+  REJECTED = 'REJECTED'
 }
 
 export interface Competition {

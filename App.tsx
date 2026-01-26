@@ -69,15 +69,13 @@ const App: React.FC = () => {
     localStorage.setItem('math_lang', lang);
   }, [lang]);
 
-  const handleRegister = async (compId: string) => {
+  const handleRegister = async (compId: string): Promise<void> => {
     if (!user) {
-      alert(lang === 'zh' ? "请先登录再进行报名。" : "Please login first.");
-      return;
+      throw new Error(lang === 'zh' ? "请先登录再进行报名。" : "Please login first.");
     }
     const alreadyRegistered = registrations.some(r => r.competitionId === compId);
     if (alreadyRegistered) {
-      alert(lang === 'zh' ? "您已经报名过该竞赛" : "You have already registered for this competition");
-      return;
+      throw new Error(lang === 'zh' ? "您已经报名过该竞赛" : "You have already registered for this competition");
     }
 
     try {
@@ -87,9 +85,8 @@ const App: React.FC = () => {
       if (response.success) {
         // 报名成功后，重新加载用户的报名列表
         await loadUserRegistrations();
-        alert(lang === 'zh' ? "报名成功！请前往个人中心完成缴费。" : "Registration successful! Please proceed to payment.");
       } else {
-        alert(response.message || (lang === 'zh' ? "报名失败，请稍后重试" : "Registration failed, please try again"));
+        throw new Error(response.message || (lang === 'zh' ? "报名失败，请稍后重试" : "Registration failed, please try again"));
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -97,8 +94,13 @@ const App: React.FC = () => {
       if (error.response?.status === 409 || error.message?.includes('已经报名')) {
         await loadUserRegistrations();
       }
-      alert(error.response?.data?.message || error.message || (lang === 'zh' ? "报名失败，请稍后重试" : "Registration failed, please try again"));
+      throw new Error(error.response?.data?.message || error.message || (lang === 'zh' ? "报名失败，请稍后重试" : "Registration failed, please try again"));
     }
+  };
+
+  const getRegistrationStatus = (compId: string): RegistrationStatus | null => {
+    const reg = registrations.find(r => r.competitionId === compId);
+    return reg ? reg.status : null;
   };
 
   const handlePay = async (compId: string) => {
@@ -127,7 +129,8 @@ const App: React.FC = () => {
             <CompetitionList 
               user={user} 
               onRegister={handleRegister} 
-              hasRegistered={(id) => registrations.some(r => r.competitionId === id)} 
+              hasRegistered={(id) => registrations.some(r => r.competitionId === id)}
+              getRegistrationStatus={getRegistrationStatus}
               lang={lang}
             />
           } />

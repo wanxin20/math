@@ -30,6 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
     description: string;
   } | null>(null);
   const [paymentPolling, setPaymentPolling] = useState(false);
+  const [pollIntervalRef, setPollIntervalRef] = useState<NodeJS.Timeout | null>(null);
 
   // 微信支付：创建支付订单并显示二维码
   const handleWechatPay = async (compId: string) => {
@@ -67,6 +68,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
 
   // 轮询支付状态
   const startPaymentPolling = (registrationId: number, compId: string) => {
+    // 清除之前的轮询（如果有）
+    if (pollIntervalRef) {
+      clearInterval(pollIntervalRef);
+    }
+    
     setPaymentPolling(true);
     
     const pollInterval = setInterval(async () => {
@@ -77,7 +83,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
           // 检查支付状态
           if (result.data.orderStatus === 'SUCCESS' && result.data.paymentStatus === 'SUCCESS') {
             // 支付成功
-            clearInterval(pollInterval);
+            if (pollInterval) clearInterval(pollInterval);
+            setPollIntervalRef(null);
             setPaymentPolling(false);
             setPaymentModal(null);
             
@@ -95,15 +102,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
       }
     }, 3000); // 每3秒查询一次
 
+    // 保存 interval ID
+    setPollIntervalRef(pollInterval);
+
     // 5分钟后停止轮询
     setTimeout(() => {
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
+      setPollIntervalRef(null);
       setPaymentPolling(false);
     }, 5 * 60 * 1000);
   };
 
   // 关闭支付弹窗
   const closePaymentModal = () => {
+    // 清除轮询
+    if (pollIntervalRef) {
+      clearInterval(pollIntervalRef);
+      setPollIntervalRef(null);
+    }
     setPaymentModal(null);
     setPaymentPolling(false);
   };
@@ -171,7 +187,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
   useEffect(() => {
     loadMyRegistrations();
     loadResources();
-  }, []);
+    
+    // 组件卸载时清除轮询
+    return () => {
+      if (pollIntervalRef) {
+        clearInterval(pollIntervalRef);
+      }
+    };
+  }, [pollIntervalRef]);
 
 
   const loadMyRegistrations = async () => {
@@ -292,13 +315,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
 
               <div className="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
                  {reg.status === RegistrationStatus.PENDING_PAYMENT && (
-                   <button 
-                     onClick={() => handleWechatPay(reg.competitionId)} 
-                     className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold w-full transition flex items-center justify-center gap-2"
-                   >
-                     <i className="fab fa-weixin"></i>
-                     {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
-                   </button>
+                   isPastDeadline ? (
+                     <div className="text-gray-400 px-6 py-2 text-sm text-center w-full border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
+                       <i className="fas fa-lock mr-2"></i>
+                       {lang === 'zh' ? '报名已截止，无法支付' : 'Registration Closed'}
+                     </div>
+                   ) : (
+                     <button 
+                       onClick={() => handleWechatPay(reg.competitionId)} 
+                       className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold w-full transition flex items-center justify-center gap-2"
+                     >
+                       <i className="fab fa-weixin"></i>
+                       {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
+                     </button>
+                   )
                  )}
                  {reg.status === RegistrationStatus.PAID && (
                    isPastDeadline ? (

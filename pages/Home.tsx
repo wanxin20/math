@@ -278,7 +278,7 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
           onClick={closeNewsModal}
         >
           <div 
-            className="bg-white rounded-3xl max-w-3xl w-full max-h-[80vh] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+            className="bg-white rounded-3xl w-full md:w-[800px] h-[90vh] md:h-[85vh] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -301,29 +301,20 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
             </div>
 
             {/* Modal Body */}
-            <div className="px-8 py-6 overflow-y-auto max-h-[calc(80vh-180px)]">
-              {/* Publish Date & View Count */}
-              <div className="flex items-center gap-6 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-calendar-alt text-indigo-600"></i>
-                  <span className="font-medium">
-                    {lang === 'zh' ? '发布时间' : 'Published'}:
-                  </span>
-                  <span className="font-bold text-gray-700">
-                    {new Date(selectedNews.publishDate).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-eye text-indigo-600"></i>
-                  <span className="font-medium">
-                    {lang === 'zh' ? '浏览次数' : 'Views'}:
-                  </span>
-                  <span className="font-bold text-gray-700">{selectedNews.viewCount}</span>
-                </div>
+            <div className="px-8 py-6 overflow-y-auto h-[calc(90vh-200px)] md:h-[calc(85vh-180px)]">
+              {/* Publish Date */}
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
+                <i className="fas fa-calendar-alt text-indigo-600"></i>
+                <span className="font-medium">
+                  {lang === 'zh' ? '发布时间' : 'Published'}:
+                </span>
+                <span className="font-bold text-gray-700">
+                  {new Date(selectedNews.publishDate).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
               </div>
 
               {/* Content */}
@@ -335,15 +326,7 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-              <button 
-                onClick={closeNewsModal}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-indigo-200"
-              >
-                {lang === 'zh' ? '关闭' : 'Close'}
-              </button>
-            </div>
+            
           </div>
         </div>
       )}
