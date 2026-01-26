@@ -460,7 +460,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
               
               <div className="text-center">
                 {/* 微信图标 */}
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6 animate-bounce">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6">
                   <i className="fab fa-weixin text-green-600 text-5xl"></i>
                 </div>
                 
@@ -482,15 +482,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
                 </div>
                 
                 {/* 二维码 */}
-                <div className="bg-white p-6 rounded-2xl shadow-lg border-4 border-green-200 inline-block mb-6 relative">
-                  {paymentPolling && (
-                    <div className="absolute inset-0 bg-white/90 rounded-2xl flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-600 border-t-transparent mx-auto mb-2"></div>
-                        <p className="text-sm text-green-600 font-semibold">{lang === 'zh' ? '等待支付...' : 'Waiting...'}</p>
-                      </div>
-                    </div>
-                  )}
+                <div className="bg-white p-6 rounded-2xl shadow-lg border-4 border-green-200 inline-block mb-4 relative">
                   <img 
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(paymentModal.qrCodeUrl)}`}
                     alt="Payment QR Code"
@@ -501,6 +493,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
                     {lang === 'zh' ? '扫码' : 'SCAN'}
                   </div>
                 </div>
+                
+                {/* 支付状态提示 */}
+                {paymentPolling && (
+                  <div className="flex items-center justify-center gap-2 mb-6 text-green-600">
+                    <div className="animate-spin rounded-full h-5 w-5 border-3 border-green-600 border-t-transparent"></div>
+                    <p className="text-sm font-semibold">{lang === 'zh' ? '等待支付中...' : 'Waiting for payment...'}</p>
+                  </div>
+                )}
                 
                 <div className="space-y-3 bg-blue-50 rounded-2xl p-4 border border-blue-100">
                   <div className="flex items-center justify-center gap-2 text-sm text-blue-700 font-semibold">
