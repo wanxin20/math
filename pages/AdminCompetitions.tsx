@@ -466,19 +466,7 @@ const AdminCompetitions: React.FC = () => {
       {/* 编辑/创建对话框 */}
       {editingCompetition && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            backdropFilter: 'blur(4px)',
-          }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setEditingCompetition(null);
@@ -487,16 +475,8 @@ const AdminCompetitions: React.FC = () => {
           }}
         >
           <div
-            style={{
-              backgroundColor: 'white',
-              padding: '0',
-              borderRadius: '12px',
-              minWidth: '700px',
-              maxWidth: '900px',
-              maxHeight: '90vh',
-              overflow: 'hidden',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            }}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* 标题栏 */}
             <div style={{

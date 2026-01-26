@@ -408,38 +408,28 @@ const AdminNews: React.FC = () => {
 
       {/* Edit Modal */}
       {editingNews && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px',
-        }}
-          onClick={() => setEditingNews(null)}
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setEditingNews(null);
+            }
+          }}
         >
           <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '20px',
-              maxWidth: '800px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              padding: '32px',
-            }}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>
-              {isCreating ? '新建公告' : '编辑公告'}
-            </h2>
+            {/* 标题栏 */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-6">
+              <h2 className="text-2xl font-bold">
+                {isCreating ? '📢 新建公告' : '✏️ 编辑公告'}
+              </h2>
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* 表单内容 */}
+            <div className="p-8 max-h-[calc(90vh-180px)] overflow-y-auto">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* 标题 */}
               <div>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
@@ -588,56 +578,28 @@ const AdminNews: React.FC = () => {
                 </div>
               </div>
 
-              {/* Buttons */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                <button
-                  onClick={handleSave}
-                  disabled={!editingNews.title || !editingNews.content}
-                  style={{
-                    flex: 1,
-                    padding: '14px',
-                    backgroundColor: (!editingNews.title || !editingNews.content) ? '#e5e7eb' : '#4f46e5',
-                    color: 'white',
-                    borderRadius: '12px',
-                    border: 'none',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: (!editingNews.title || !editingNews.content) ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (editingNews.title && editingNews.content) {
-                      e.currentTarget.style.backgroundColor = '#4338ca';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (editingNews.title && editingNews.content) {
-                      e.currentTarget.style.backgroundColor = '#4f46e5';
-                    }
-                  }}
-                >
-                  保存
-                </button>
-                <button
-                  onClick={() => setEditingNews(null)}
-                  style={{
-                    flex: 1,
-                    padding: '14px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#374151',
-                    borderRadius: '12px',
-                    border: 'none',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e5e7eb'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
-                >
-                  取消
-                </button>
               </div>
+            </div>
+
+            {/* 按钮区域 */}
+            <div className="bg-gray-50 border-t border-gray-200 px-8 py-5 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingNews(null)}
+                className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!editingNews.title || !editingNews.content}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  !editingNews.title || !editingNews.content
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:-translate-y-0.5'
+                }`}
+              >
+                {isCreating ? '创建公告' : '保存修改'}
+              </button>
             </div>
           </div>
         </div>
