@@ -81,7 +81,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
         
         if (result.success && result.data) {
           // 检查支付状态
-          if (result.data.orderStatus === 'SUCCESS' && result.data.paymentStatus === 'SUCCESS') {
+          // orderStatus: 微信返回的状态 (SUCCESS/NOTPAY等)
+          // paymentStatus: 数据库中的状态 (success/pending/failed/refunded)
+          if (result.data.orderStatus === 'SUCCESS' && result.data.paymentStatus === 'success') {
             // 支付成功
             if (pollInterval) clearInterval(pollInterval);
             setPollIntervalRef(null);
