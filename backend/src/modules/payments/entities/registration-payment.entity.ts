@@ -43,9 +43,17 @@ export class RegistrationPayment {
     name: 'payment_transaction_id',
     length: 100,
     nullable: true,
-    comment: '支付流水号',
+    comment: '商户订单号（PAY-xxx）',
   })
   paymentTransactionId: string;
+
+  @Column({
+    name: 'wechat_transaction_id',
+    length: 100,
+    nullable: true,
+    comment: '微信支付交易号',
+  })
+  wechatTransactionId: string;
 
   @Column({ name: 'payment_time', type: 'timestamp', nullable: true, comment: '支付时间' })
   paymentTime: Date;

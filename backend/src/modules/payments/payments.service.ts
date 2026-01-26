@@ -201,7 +201,8 @@ export class PaymentsService {
     // 更新支付记录
     payment.paymentStatus = PaymentStatus.SUCCESS;
     payment.paymentTime = new Date(orderInfo.success_time);
-    payment.paymentTransactionId = orderInfo.transaction_id; // 微信支付交易号
+    // 保留原订单号不变，单独存储微信交易号
+    payment.wechatTransactionId = orderInfo.transaction_id;
 
     await this.paymentsRepository.save(payment);
 
@@ -211,7 +212,7 @@ export class PaymentsService {
       { status: RegistrationStatus.PAID },
     );
 
-    this.logger.log(`支付成功：报名ID=${payment.registrationId}, 微信交易号=${orderInfo.transaction_id}`);
+    this.logger.log(`支付成功：报名ID=${payment.registrationId}, 商户订单号=${payment.paymentTransactionId}, 微信交易号=${orderInfo.transaction_id}`);
   }
 
   /**

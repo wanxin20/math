@@ -4,6 +4,7 @@ import { User, UserRegistration, RegistrationStatus } from '../types';
 import { Language, translations } from '../i18n';
 import api from '../services/api';
 import { API_BASE_URL } from '../constants';
+import NotificationModal from '../components/NotificationModal';
 
 interface DashboardProps {
   user: User;
@@ -31,6 +32,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
   } | null>(null);
   const [paymentPolling, setPaymentPolling] = useState(false);
   const [pollIntervalRef, setPollIntervalRef] = useState<NodeJS.Timeout | null>(null);
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
 
   // 微信支付：创建支付订单并显示二维码
   const handleWechatPay = async (compId: string) => {
@@ -96,7 +108,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
             // 调用父组件的方法（更新localStorage）
             onPay(compId);
             
-            alert(lang === 'zh' ? '支付成功！' : 'Payment successful!');
+            // 显示支付成功通知
+            setNotification({
+              show: true,
+              title: lang === 'zh' ? '支付成功' : 'Payment Successful',
+              message: lang === 'zh' ? '您的支付已成功！\n请前往论文提交页面上传您的作品。' : 'Payment successful!\nPlease upload your paper.',
+              type: 'success',
+            });
           }
         }
       } catch (error) {
@@ -421,63 +439,96 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
 
       {/* 微信支付二维码弹窗 */}
       {paymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
-            <button
-              onClick={closePaymentModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
-            >
-              ×
-            </button>
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={closePaymentModal}
+        >
+          <div 
+            className="bg-gradient-to-br from-white to-green-50 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 顶部装饰 */}
+            <div className="h-2 bg-gradient-to-r from-green-400 via-green-500 to-green-600"></div>
             
-            <div className="text-center">
-              <div className="mb-4">
-                <i className="fab fa-weixin text-green-600 text-5xl"></i>
-              </div>
+            <div className="p-8 relative">
+              <button
+                onClick={closePaymentModal}
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-700 transition"
+              >
+                <i className="fas fa-times text-lg"></i>
+              </button>
               
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
-              </h3>
-              
-              <p className="text-gray-600 mb-4">
-                {paymentModal.description}
-              </p>
-              
-              <div className="text-3xl font-bold text-green-600 mb-6">
-                ¥{paymentModal.amount}
-              </div>
-              
-              {/* 二维码 */}
-              <div className="bg-white p-6 rounded-xl border-2 border-gray-200 inline-block mb-6">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(paymentModal.qrCodeUrl)}`}
-                  alt="Payment QR Code"
-                  className="w-48 h-48"
-                />
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                  {paymentPolling ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-600 border-t-transparent"></div>
-                      <span>{lang === 'zh' ? '等待支付中...' : 'Waiting for payment...'}</span>
-                    </>
-                  ) : (
-                    <span>{lang === 'zh' ? '请使用微信扫码支付' : 'Scan QR code with WeChat'}</span>
-                  )}
+              <div className="text-center">
+                {/* 微信图标 */}
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6 animate-bounce">
+                  <i className="fab fa-weixin text-green-600 text-5xl"></i>
                 </div>
                 
-                <p className="text-xs text-gray-500">
-                  {lang === 'zh' 
-                    ? '支付完成后，页面将自动更新' 
-                    : 'Page will update automatically after payment'}
-                </p>
+                <h3 className="text-3xl font-black text-gray-900 mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-green-700">
+                  {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
+                </h3>
+                
+                <div className="bg-white/80 backdrop-blur rounded-2xl p-4 mb-6 border border-green-100">
+                  <p className="text-gray-600 text-sm mb-2">
+                    {paymentModal.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm text-gray-500">{lang === 'zh' ? '应付金额' : 'Amount'}</span>
+                    <div className="text-4xl font-black text-green-600">
+                      ¥{paymentModal.amount}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 二维码 */}
+                <div className="bg-white p-6 rounded-2xl shadow-lg border-4 border-green-200 inline-block mb-6 relative">
+                  {paymentPolling && (
+                    <div className="absolute inset-0 bg-white/90 rounded-2xl flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-600 border-t-transparent mx-auto mb-2"></div>
+                        <p className="text-sm text-green-600 font-semibold">{lang === 'zh' ? '等待支付...' : 'Waiting...'}</p>
+                      </div>
+                    </div>
+                  )}
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(paymentModal.qrCodeUrl)}`}
+                    alt="Payment QR Code"
+                    className="w-52 h-52"
+                  />
+                  <div className="absolute -bottom-3 -right-3 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                    <i className="fas fa-qrcode mr-1"></i>
+                    {lang === 'zh' ? '扫码' : 'SCAN'}
+                  </div>
+                </div>
+                
+                <div className="space-y-3 bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                  <div className="flex items-center justify-center gap-2 text-sm text-blue-700 font-semibold">
+                    <i className="fas fa-info-circle"></i>
+                    <span>{lang === 'zh' ? '请使用微信扫码支付' : 'Scan QR code with WeChat'}</span>
+                  </div>
+                  
+                  <p className="text-xs text-blue-600">
+                    {lang === 'zh' 
+                      ? '支付完成后，页面将自动更新并跳转' 
+                      : 'Page will update automatically after payment'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Notification Modal */}
+      <NotificationModal
+        show={notification.show}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+        confirmText={lang === 'zh' ? '确定' : 'OK'}
+        onConfirm={() => setNotification({ ...notification, show: false })}
+      />
     </div>
   );
 };
