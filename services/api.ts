@@ -87,6 +87,30 @@ export const authApi = {
       method: 'POST',
     });
   },
+
+  // 发送邮箱验证码
+  sendVerificationCode: async (email: string) => {
+    return request('/auth/send-verification-code', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  // 验证邮箱验证码
+  verifyCode: async (email: string, code: string) => {
+    return request('/auth/verify-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+  },
+
+  // 重置密码
+  resetPassword: async (email: string, code: string, newPassword: string) => {
+    return request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+  },
 };
 
 // 竞赛相关 API

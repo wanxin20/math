@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, Logger, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,6 +8,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { BcryptUtil } from '@/common/utils/bcrypt.util';
 import { UserStatus } from '@/common/enums/user-status.enum';
+import { VerificationCodeService } from '../mail/verification-code.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
+    private verificationCodeService: VerificationCodeService,
   ) {}
 
   /**
@@ -158,5 +160,49 @@ export class AuthService {
 
     const { passwordHash: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  /**
+   * 发送邮箱验证码
+   */
+  async sendVerificationCode(email: string): Promise<void> {
+    await this.verificationCodeService.sendCode(email);
+  }
+
+  /**
+   * 验证邮箱验证码
+   */
+  async verifyCode(email: string, code: string): Promise<boolean> {
+    return await this.verificationCodeService.verifyCode(email, code);
+  }
+
+  /**
+   * 重置密码
+   */
+  async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+    // 1. 验证验证码
+    const isValid = await this.verificationCodeService.verifyCode(email, code);
+    if (!isValid) {
+      throw new BadRequestException('验证码错误或已过期');
+    }
+
+    // 2. 查找用户
+    const user = await this.usersRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('该邮箱未注册');
+    }
+
+    // 3. 加密新密码
+    const passwordHash = await BcryptUtil.hashPassword(newPassword);
+
+    // 4. 更新密码
+    await this.usersRepository.update(user.id, {
+      passwordHash,
+    });
+
+    this.logger.log(`用户 ${email} 重置密码成功`);
   }
 }

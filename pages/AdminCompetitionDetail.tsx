@@ -217,8 +217,8 @@ const AdminCompetitionDetail: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {reg.payment ? (
                         <div>
-                          <div className={`font-semibold ${reg.payment.paymentStatus === 'SUCCESS' ? 'text-green-600' : 'text-yellow-600'}`}>
-                            {reg.payment.paymentStatus === 'SUCCESS' ? '已支付' : '待支付'}
+                          <div className={`font-semibold ${reg.payment.paymentStatus === 'success' ? 'text-green-600' : 'text-yellow-600'}`}>
+                            {reg.payment.paymentStatus === 'success' ? '已支付' : '待支付'}
                           </div>
                           {reg.payment.paymentTime && (
                             <div className="text-xs text-gray-500">
