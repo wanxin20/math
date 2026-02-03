@@ -6,19 +6,19 @@ export const translations = {
     nav: {
       home: '首页',
       competitions: '竞赛中心',
-      resources: '教研资源',
+      resources: '论文模板',
       dashboard: '个人中心',
       login: '登录 / 注册',
       logout: '退出登录',
-      title: '深圳数学学会教师论文竞赛平台',
+      title: '深圳数学学会论文评选平台',
       userMgmt: '用户管理',
       compMgmt: '竞赛管理',
       resMgmt: '资源管理',
       newsMgmt: '公告管理'
     },
     home: {
-      heroTitle: '提升数学艺术，分享教育智慧',
-      heroSub: '欢迎来到深圳数学学会教师专业发展与竞赛官方服务平台。在这里，您可以分享教学经验，参与高水平教研竞赛。',
+      heroTitle: '展现数学思维,分享数学智慧',
+      heroSub: '欢迎来到深圳数学学会论文评选服务平台。在这里，您可以提交数学论文，参与高水平论文评选。',
       ctaRegister: '立即参加评选',
       ctaGuide: '撰写与提交指南',
       popular: '竞赛类别',
@@ -33,16 +33,16 @@ export const translations = {
       ],
       partnersTitle: '学术支持与合作院校',
       steps: [
-        { title: '教师注册', desc: '创建您的教研档案' },
-        { title: '在线报名', desc: '选择评选类别并填写信息' },
+        { title: '用户注册', desc: '创建您的教研档案' },
+        { title: '在线报名', desc: '选择评选论文并填写信息' },
         { title: '评审费用', desc: '完成论文评审费用支付' },
-        { title: '模板下载', desc: '下载规范的教研论文模板' },
-        { title: '论文上传', desc: '提交您的研究成果或案例' }
+        { title: '模板下载', desc: '下载规范的论文模板' },
+        { title: '论文上传', desc: '提交您的研究成果' }
       ]
     },
     dashboard: {
       welcome: '欢迎您',
-      sub: '在个人中心，您可以管理您的参赛论文与教研成果',
+      sub: '在个人中心，您可以管理您的参赛论文',
       all: '全部项目',
       pending: '待办事项',
       status: {
@@ -60,12 +60,12 @@ export const translations = {
         upload: '上传论文/案例 (ZIP/PDF)',
         done: '已完成'
       },
-      resources: '教研模版下载',
+      resources: '论文模版下载',
       notice: '重要提醒'
     },
     login: {
       name: '姓名',
-      institution: '任教单位',
+      institution: '所属单位',
       title: '职称 / 职务',
       phone: '手机号码',
       email: '电子邮箱',
@@ -74,8 +74,8 @@ export const translations = {
       verificationCode: '邮箱验证码',
       newPassword: '新密码',
       namePlaceholder: '请输入您的真实姓名',
-      instPlaceholder: '如：XX市实验小学',
-      titlePlaceholder: '如：高级教师 / 教导主任',
+      instPlaceholder: '如：XX市xx学校',
+      titlePlaceholder: '如：高级教师',
       phonePlaceholder: '请输入11位手机号',
       emailPlaceholder: 'name@school.edu.cn',
       confirmPasswordPlaceholder: '请再次输入密码',
@@ -95,7 +95,7 @@ export const translations = {
       welcomeBack: '欢迎回来',
       signUp: '注册账户',
       loginSub: '登录以管理您的论文项目',
-      signUpSub: '加入教师专业交流平台',
+      signUpSub: '加入数学交流平台',
       btnSubmitLogin: '立即登录',
       btnSubmitSignUp: '立即注册',
       hasAccount: '已有账户？',

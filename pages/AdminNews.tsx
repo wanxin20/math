@@ -74,15 +74,27 @@ const AdminNews: React.FC = () => {
     setIsCreating(false);
   };
 
+  // 后端 DTO 只允许这些字段，多传会 400
+  const newsPayload = (n: Partial<News>) => ({
+    title: n.title,
+    content: n.content,
+    summary: n.summary,
+    type: n.type,
+    priority: n.priority,
+    isPublished: n.isPublished,
+    publishDate: n.publishDate,
+  });
+
   const handleSave = async () => {
     if (!editingNews) return;
 
     try {
       let response;
+      const payload = newsPayload(editingNews);
       if (isCreating) {
-        response = await newsApi.adminCreate(editingNews);
+        response = await newsApi.adminCreate(payload);
       } else {
-        response = await newsApi.adminUpdate(editingNews.id!, editingNews);
+        response = await newsApi.adminUpdate(editingNews.id!, payload);
       }
 
       if (response.success) {

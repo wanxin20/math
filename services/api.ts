@@ -199,6 +199,49 @@ export const registrationApi = {
   getByCompetitionId: async (competitionId: string) => {
     return request(`/registrations/competition/${competitionId}`);
   },
+
+  // 管理员：导出竞赛报名列表为 Excel（返回 blob 并触发下载）
+  exportExcel: async (competitionId: string): Promise<{ success: boolean; message?: string }> => {
+    const token = localStorage.getItem('math_token');
+    try {
+      const response = await fetch(`${API_BASE_URL}/registrations/competition/${competitionId}/export`, {
+        method: 'GET',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        return { success: false, message: data.message || '导出失败' };
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = `报名列表_${competitionId}_${Date.now()}.xlsx`;
+      if (disposition) {
+        const match = disposition.match(/filename\*?=(?:UTF-8'')?([^;]+)/i) || disposition.match(/filename="?([^";]+)"?/i);
+        if (match?.[1]) filename = decodeURIComponent(match[1].trim().replace(/^["']|["']$/g, ''));
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      return { success: true };
+    } catch (e: any) {
+      console.error('Export Excel error:', e);
+      return { success: false, message: e.message || '导出失败' };
+    }
+  },
+
+  // 更新报名发票信息（缴费前）
+  updateInvoice: async (
+    registrationId: number,
+    data: { needInvoice: boolean; invoiceTitle?: string; invoiceTaxNo?: string; invoiceAddress?: string; invoicePhone?: string; invoiceEmail?: string },
+  ) => {
+    return request(`/registrations/${registrationId}/invoice`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // 支付相关 API
@@ -238,16 +281,17 @@ export const paymentApi = {
 
 // 论文提交相关 API
 export const paperApi = {
-  // 提交论文
+  // 提交论文（支持单文件或多文件：submissionFiles 与 submissionFileName+Url 二选一）
   submit: async (data: {
     registrationId: number;
     paperTitle: string;
     paperAbstract?: string;
     paperKeywords?: string;
-    submissionFileName: string;
-    submissionFileUrl: string;
+    submissionFileName?: string;
+    submissionFileUrl?: string;
     submissionFileSize?: number;
     submissionFileType?: string;
+    submissionFiles?: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }>;
     researchField?: string;
   }) => {
     return request('/papers', {

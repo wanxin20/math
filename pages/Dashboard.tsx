@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, UserRegistration, RegistrationStatus } from '../types';
 import { Language, translations } from '../i18n';
 import api from '../services/api';
@@ -10,7 +9,7 @@ interface DashboardProps {
   user: User;
   registrations: UserRegistration[];
   onPay: (compId: string) => void;
-  onSubmit: (compId: string, fileName: string) => void;
+  onSubmit: (compId: string, fileNameOrLabel: string) => void;
   lang: Language;
 }
 
@@ -43,6 +42,77 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
     message: '',
     type: 'info',
   });
+
+  // 待提交论文文件：选择后先放入列表，用户点击「确认提交」再上传
+  const [pendingPaperFiles, setPendingPaperFiles] = useState<{ compId: string; files: File[] } | null>(null);
+  const [submittingPaper, setSubmittingPaper] = useState(false);
+  const addMoreFileInputRef = useRef<HTMLInputElement>(null);
+
+  // 缴费前发票流程：ask -> 选「是」则 form -> 确认后进入支付
+  const [invoiceFlow, setInvoiceFlow] = useState<{ step: 'ask' | 'form'; compId: string; registrationId: number } | null>(null);
+  const [invoiceForm, setInvoiceForm] = useState({
+    invoiceTitle: '',
+    invoiceTaxNo: '',
+    invoiceAddress: '',
+    invoicePhone: '',
+    invoiceEmail: '',
+  });
+
+  const closeInvoiceFlow = () => {
+    setInvoiceFlow(null);
+    setInvoiceForm({ invoiceTitle: '', invoiceTaxNo: '', invoiceAddress: '', invoicePhone: '', invoiceEmail: '' });
+  };
+
+  // 点击「微信支付」时先弹出「是否需要发票」
+  const handlePayClick = (compId: string) => {
+    const registration = myRegistrations.find(r => r.competitionId === compId);
+    if (!registration?.id) return;
+    setInvoiceFlow({ step: 'ask', compId, registrationId: registration.id });
+  };
+
+  // 选择「否」：直接进入支付
+  const handleInvoiceNo = () => {
+    if (!invoiceFlow) return;
+    const { compId } = invoiceFlow;
+    closeInvoiceFlow();
+    handleWechatPay(compId);
+  };
+
+  // 选择「是」：显示发票表单
+  const handleInvoiceYes = () => {
+    if (!invoiceFlow) return;
+    setInvoiceFlow({ ...invoiceFlow, step: 'form' });
+  };
+
+  // 提交发票信息并进入支付
+  const handleInvoiceSubmit = async () => {
+    if (!invoiceFlow) return;
+    const { compId, registrationId } = invoiceFlow;
+    const { invoiceTitle, invoiceTaxNo, invoiceAddress, invoicePhone, invoiceEmail } = invoiceForm;
+    if (!invoiceTitle?.trim()) {
+      alert(lang === 'zh' ? '请填写发票抬头' : 'Please enter invoice title');
+      return;
+    }
+    try {
+      const res = await api.registration.updateInvoice(registrationId, {
+        needInvoice: true,
+        invoiceTitle: invoiceTitle.trim(),
+        invoiceTaxNo: invoiceTaxNo.trim() || undefined,
+        invoiceAddress: invoiceAddress.trim() || undefined,
+        invoicePhone: invoicePhone.trim() || undefined,
+        invoiceEmail: invoiceEmail.trim() || undefined,
+      });
+      if (!res.success) {
+        alert(res.message || (lang === 'zh' ? '保存发票信息失败' : 'Failed to save invoice'));
+        return;
+      }
+      closeInvoiceFlow();
+      handleWechatPay(compId);
+    } catch (e) {
+      console.error(e);
+      alert(lang === 'zh' ? '保存发票信息失败，请重试' : 'Failed to save invoice, please try again');
+    }
+  };
 
   // 微信支付：创建支付订单并显示二维码
   const handleWechatPay = async (compId: string) => {
@@ -144,51 +214,64 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
     setPaymentPolling(false);
   };
 
-  // 本地处理论文提交（连接真实API）
-  const handleLocalSubmit = async (compId: string, file: File) => {
+  // 选择文件后放入待提交列表；若当前已有待提交且为同一竞赛，则追加
+  const handlePaperFilesSelected = (compId: string, fileList: FileList | null, append = false) => {
+    if (!fileList?.length) return;
+    const newFiles = Array.from(fileList);
+    setPendingPaperFiles((prev) => {
+      if (append && prev?.compId === compId) {
+        return { compId, files: [...prev.files, ...newFiles] };
+      }
+      return { compId, files: newFiles };
+    });
+  };
+
+  // 确认提交：上传待提交列表中的全部文件
+  const handleLocalSubmit = async (compId: string, files: FileList | File[]) => {
+    const fileList = Array.from(files?.length ? files : []);
+    if (fileList.length === 0) return;
+
+    setSubmittingPaper(true);
     try {
-      // 查找对应的报名记录
       const registration = myRegistrations.find(r => r.competitionId === compId);
       if (!registration || !registration.id) {
         alert(lang === 'zh' ? '找不到报名记录' : 'Registration not found');
         return;
       }
 
-      // 1. 上传文件
-      const uploadResult = await api.upload.uploadFile(file);
-      if (!uploadResult.success || !uploadResult.data) {
-        alert(uploadResult.message || (lang === 'zh' ? '文件上传失败' : 'File upload failed'));
-        return;
+      const uploaded: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }> = [];
+      for (const file of fileList) {
+        const uploadResult = await api.upload.uploadFile(file);
+        if (!uploadResult.success || !uploadResult.data) {
+          alert(uploadResult.message || (lang === 'zh' ? '文件上传失败' : 'File upload failed'));
+          return;
+        }
+        const { url: fileUrl, originalname, size, mimetype } = uploadResult.data;
+        uploaded.push({ fileName: originalname, fileUrl, size, mimetype });
       }
 
-      const { url: fileUrl, originalname, size, mimetype } = uploadResult.data;
-
-      // 2. 提交论文记录
+      const first = uploaded[0];
       const paperData = {
-        registrationId: registration.id,
-        paperTitle: originalname,
-        submissionFileName: originalname,
-        submissionFileUrl: fileUrl,
-        submissionFileSize: size,
-        submissionFileType: mimetype,
+        registrationId: registration.id as number,
+        paperTitle: fileList.length === 1 ? first.fileName : (lang === 'zh' ? `论文（${fileList.length} 个文件）` : `Paper (${fileList.length} files)`),
+        submissionFiles: uploaded,
       };
 
-      const submitResult = await api.paper.submit(paperData);
+      const submitResult = await api.paper.submit(paperData as Parameters<typeof api.paper.submit>[0]);
       if (!submitResult.success) {
         alert(submitResult.message || (lang === 'zh' ? '论文提交失败' : 'Paper submission failed'));
         return;
       }
 
-      // 3. 从后端重新加载报名列表，确保状态同步
+      setPendingPaperFiles(null);
       await loadMyRegistrations();
-
-      // 调用父组件的方法（更新localStorage）
-      onSubmit(compId, originalname);
-
+      onSubmit(compId, fileList.length === 1 ? first.fileName : `${fileList.length} files`);
       alert(lang === 'zh' ? '论文上传成功！' : 'Paper uploaded successfully!');
     } catch (error: any) {
       console.error('Paper submission error:', error);
       alert(lang === 'zh' ? '论文上传失败，请重试' : 'Paper upload failed, please try again');
+    } finally {
+      setSubmittingPaper(false);
     }
   };
 
@@ -342,7 +425,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
                      </div>
                    ) : (
                      <button 
-                       onClick={() => handleWechatPay(reg.competitionId)} 
+                       onClick={() => handlePayClick(reg.competitionId)} 
                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold w-full transition flex items-center justify-center gap-2"
                      >
                        <i className="fab fa-weixin"></i>
@@ -356,53 +439,167 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
                        <i className="fas fa-lock mr-2"></i>
                        {lang === 'zh' ? '已过提交截止时间' : 'Submission Closed'}
                      </div>
-                   ) : (
-                     <label className="cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition">
-                       <input 
-                         type="file" 
-                         className="hidden" 
-                         accept=".pdf,.doc,.docx,.zip"
-                         onChange={(e) => e.target.files?.[0] && handleLocalSubmit(reg.competitionId, e.target.files[0])} 
-                       />
-                       {t.actions.upload}
-                     </label>
+                   ) : pendingPaperFiles?.compId === reg.competitionId ? (
+                    <div className="space-y-2 w-full">
+                      <p className="text-sm text-gray-600">
+                        {lang === 'zh' ? `已选 ${pendingPaperFiles.files.length} 个文件，可继续添加或点击下方提交` : `${pendingPaperFiles.files.length} file(s) selected`}
+                      </p>
+                      <ul className="text-xs text-gray-500 list-disc list-inside max-h-20 overflow-y-auto">
+                        {pendingPaperFiles.files.map((f, i) => (
+                          <li key={i} className="truncate">{f.name}</li>
+                        ))}
+                      </ul>
+                      <input
+                        ref={addMoreFileInputRef}
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept=".pdf,.doc,.docx,.zip"
+                        onChange={(e) => { handlePaperFilesSelected(reg.competitionId, e.target.files, true); e.target.value = ''; }}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={submittingPaper}
+                          onClick={() => addMoreFileInputRef.current?.click()}
+                          className="px-4 py-2 rounded-lg text-sm font-medium border border-blue-300 text-blue-600 hover:bg-blue-50"
+                        >
+                          <i className="fas fa-plus mr-1"></i>
+                          {lang === 'zh' ? '继续添加文件' : 'Add more files'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submittingPaper}
+                          onClick={() => handleLocalSubmit(reg.competitionId, pendingPaperFiles.files)}
+                          className="flex-1 min-w-[100px] bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold"
+                        >
+                          {submittingPaper ? (lang === 'zh' ? '上传中…' : 'Uploading…') : (lang === 'zh' ? '确认提交' : 'Submit')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submittingPaper}
+                          onClick={() => setPendingPaperFiles(null)}
+                          className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          {lang === 'zh' ? '取消' : 'Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block">
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        multiple
+                        accept=".pdf,.doc,.docx,.zip"
+                        onChange={(e) => { handlePaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }} 
+                      />
+                      {t.actions.upload}
+                      <span className="block text-xs font-normal text-gray-500 mt-0.5">{lang === 'zh' ? '可多选，选完后点「确认提交」' : 'Select files, then click Submit'}</span>
+                    </label>
                    )
                  )}
-                 {reg.status === RegistrationStatus.SUBMITTED && (
-                   <div className="flex flex-col gap-3 w-full">
-                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-2">
-                       <div className="text-green-600 font-bold text-sm flex items-center gap-2 flex-1 min-w-0">
-                         <i className="fas fa-check-circle flex-shrink-0"></i>
-                         <span className="truncate">
-                           {lang === 'zh' ? '已提交' : 'Submitted'}: {reg.paperSubmission?.paper_title || reg.paperSubmission?.paperTitle || reg.paperSubmission?.submission_file_name || reg.submissionFile || '论文.pdf'}
-                         </span>
-                       </div>
-                       <button 
-                         onClick={() => handleViewPaper(
-                           reg.paperSubmission?.submission_file_url || 
-                           reg.paperSubmission?.submissionFileUrl || 
-                           reg.paperSubmission?.fileUrl
-                         )}
-                         className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition whitespace-nowrap flex-shrink-0"
-                       >
-                         <i className="fas fa-eye mr-1"></i>
-                         {lang === 'zh' ? '查看论文' : 'View Paper'}
-                       </button>
-                     </div>
-                     {!isPastDeadline && (
-                       <label className="cursor-pointer bg-orange-50 border border-orange-200 text-orange-600 px-4 py-2 rounded-lg text-xs font-medium w-full text-center hover:bg-orange-100 transition">
-                         <input 
-                           type="file" 
-                           className="hidden" 
-                           accept=".pdf,.doc,.docx,.zip"
-                           onChange={(e) => e.target.files?.[0] && handleLocalSubmit(reg.competitionId, e.target.files[0])} 
-                         />
-                         <i className="fas fa-redo mr-2"></i>
-                         {lang === 'zh' ? '重新提交论文' : 'Resubmit Paper'}
-                       </label>
-                     )}
-                   </div>
-                 )}
+                {reg.status === RegistrationStatus.SUBMITTED && (
+                  <div className="flex flex-col gap-3 w-full">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-2">
+                      <div className="text-green-600 font-bold text-sm flex items-center gap-2 flex-1 min-w-0">
+                        <i className="fas fa-check-circle flex-shrink-0"></i>
+                        <span className="truncate">
+                          {lang === 'zh' ? '已提交' : 'Submitted'}: {reg.paperSubmission?.paper_title || reg.paperSubmission?.paperTitle || reg.paperSubmission?.submission_file_name || reg.submissionFile || '论文.pdf'}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 flex-shrink-0">
+                        {(() => {
+                          const ps = reg.paperSubmission as any;
+                          const files = (ps?.submissionFiles || ps?.submission_files) && Array.isArray(ps?.submissionFiles || ps?.submission_files) ? (ps.submissionFiles || ps.submission_files) : null;
+                          if (files?.length) {
+                            return files.map((f: { fileName?: string; fileUrl: string }, i: number) => (
+                              <button
+                                key={i}
+                                onClick={() => handleViewPaper(f.fileUrl)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition whitespace-nowrap"
+                              >
+                                <i className="fas fa-eye mr-1"></i>
+                                {f.fileName || `${lang === 'zh' ? '文件' : 'File'} ${i + 1}`}
+                              </button>
+                            ));
+                          }
+                          const singleUrl = ps?.submission_file_url || ps?.submissionFileUrl || ps?.fileUrl;
+                          return (
+                            <button
+                              onClick={() => handleViewPaper(singleUrl)}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition whitespace-nowrap"
+                            >
+                              <i className="fas fa-eye mr-1"></i>
+                              {lang === 'zh' ? '查看论文' : 'View Paper'}
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    {!isPastDeadline && (
+                      pendingPaperFiles?.compId === reg.competitionId ? (
+                        <div className="space-y-2 w-full">
+                          <p className="text-sm text-gray-600">
+                            {lang === 'zh' ? `已选 ${pendingPaperFiles.files.length} 个文件，可继续添加或提交` : `${pendingPaperFiles.files.length} file(s) selected`}
+                          </p>
+                          <ul className="text-xs text-gray-500 list-disc list-inside max-h-16 overflow-y-auto">
+                            {pendingPaperFiles.files.map((f, i) => (
+                              <li key={i} className="truncate">{f.name}</li>
+                            ))}
+                          </ul>
+                          <input
+                            ref={addMoreFileInputRef}
+                            type="file"
+                            className="hidden"
+                            multiple
+                            accept=".pdf,.doc,.docx,.zip"
+                            onChange={(e) => { handlePaperFilesSelected(reg.competitionId, e.target.files, true); e.target.value = ''; }}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={submittingPaper}
+                              onClick={() => addMoreFileInputRef.current?.click()}
+                              className="px-4 py-2 rounded-lg text-sm font-medium border border-orange-300 text-orange-600 hover:bg-orange-50"
+                            >
+                              <i className="fas fa-plus mr-1"></i>
+                              {lang === 'zh' ? '继续添加文件' : 'Add more files'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={submittingPaper}
+                              onClick={() => handleLocalSubmit(reg.competitionId, pendingPaperFiles.files)}
+                              className="flex-1 min-w-[100px] bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                            >
+                              {submittingPaper ? (lang === 'zh' ? '上传中…' : 'Uploading…') : (lang === 'zh' ? '确认提交' : 'Submit')}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={submittingPaper}
+                              onClick={() => setPendingPaperFiles(null)}
+                              className="px-4 py-2 rounded-lg text-sm border border-gray-300 text-gray-700 hover:bg-gray-50"
+                            >
+                              {lang === 'zh' ? '取消' : 'Cancel'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer bg-orange-50 border border-orange-200 text-orange-600 px-4 py-2 rounded-lg text-xs font-medium w-full text-center hover:bg-orange-100 transition block">
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            multiple
+                            accept=".pdf,.doc,.docx,.zip"
+                            onChange={(e) => { handlePaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }} 
+                          />
+                          <i className="fas fa-redo mr-2"></i>
+                          {lang === 'zh' ? '重新提交论文（可多选，选完后点确认提交）' : 'Resubmit (select files, then Submit)'}
+                        </label>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -438,6 +635,108 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
       </div>
 
       {/* 微信支付二维码弹窗 */}
+      {/* 缴费前：是否要发票 */}
+      {invoiceFlow?.step === 'ask' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={closeInvoiceFlow}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{lang === 'zh' ? '是否需要发票？' : 'Do you need an invoice?'}</h3>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleInvoiceYes}
+                className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700"
+              >
+                {lang === 'zh' ? '是' : 'Yes'}
+              </button>
+              <button
+                type="button"
+                onClick={handleInvoiceNo}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
+              >
+                {lang === 'zh' ? '否' : 'No'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 缴费前：填写发票信息 */}
+      {invoiceFlow?.step === 'form' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={closeInvoiceFlow}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full my-8 p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{lang === 'zh' ? '填写发票信息' : 'Invoice Information'}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{lang === 'zh' ? '发票抬头' : 'Invoice title'} <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={invoiceForm.invoiceTitle}
+                  onChange={(e) => setInvoiceForm((f) => ({ ...f, invoiceTitle: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder={lang === 'zh' ? '单位或个人名称' : 'Company or name'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{lang === 'zh' ? '纳税人识别号/税号' : 'Tax ID'}</label>
+                <input
+                  type="text"
+                  value={invoiceForm.invoiceTaxNo}
+                  onChange={(e) => setInvoiceForm((f) => ({ ...f, invoiceTaxNo: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder={lang === 'zh' ? '选填' : 'Optional'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{lang === 'zh' ? '地址' : 'Address'}</label>
+                <input
+                  type="text"
+                  value={invoiceForm.invoiceAddress}
+                  onChange={(e) => setInvoiceForm((f) => ({ ...f, invoiceAddress: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder={lang === 'zh' ? '选填' : 'Optional'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{lang === 'zh' ? '联系电话' : 'Phone'}</label>
+                <input
+                  type="text"
+                  value={invoiceForm.invoicePhone}
+                  onChange={(e) => setInvoiceForm((f) => ({ ...f, invoicePhone: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder={lang === 'zh' ? '选填' : 'Optional'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{lang === 'zh' ? '邮箱（接收电子发票）' : 'Email (e-invoice)'}</label>
+                <input
+                  type="email"
+                  value={invoiceForm.invoiceEmail}
+                  onChange={(e) => setInvoiceForm((f) => ({ ...f, invoiceEmail: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder={lang === 'zh' ? '选填' : 'Optional'}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={closeInvoiceFlow}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
+              >
+                {lang === 'zh' ? '取消' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleInvoiceSubmit}
+                className="flex-1 py-3 px-4 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700"
+              >
+                {lang === 'zh' ? '确认并支付' : 'Confirm & Pay'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {paymentModal && (
         <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"

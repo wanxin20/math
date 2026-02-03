@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, ParseIntPipe, StreamableFile } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { RegistrationsService } from './registrations.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { CurrentUser } from '@/common/decorators/user.decorator';
@@ -30,6 +31,16 @@ export class RegistrationsController {
     return this.registrationsService.findUserRegistrations(userId);
   }
 
+  @Patch(':id/invoice')
+  @ApiOperation({ summary: '更新报名发票信息（缴费前）' })
+  async updateInvoice(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('userId') userId: string,
+    @Body() updateInvoiceDto: UpdateInvoiceDto,
+  ) {
+    return this.registrationsService.updateInvoice(id, userId, updateInvoiceDto);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '获取报名记录详情' })
   async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser('userId') userId: string) {
@@ -44,6 +55,17 @@ export class RegistrationsController {
   ) {
     const hasRegistered = await this.registrationsService.hasRegistered(userId, competitionId);
     return { hasRegistered };
+  }
+
+  @Get('competition/:competitionId/export')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: '管理员：导出竞赛报名列表为 Excel' })
+  async exportByCompetitionId(@Param('competitionId') competitionId: string) {
+    const { buffer, filename } = await this.registrationsService.exportByCompetitionId(competitionId);
+    return new StreamableFile(buffer, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      disposition: `attachment; filename="${encodeURIComponent(filename)}"`,
+    });
   }
 
   @Get('competition/:competitionId')

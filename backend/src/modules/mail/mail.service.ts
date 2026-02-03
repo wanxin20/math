@@ -10,18 +10,28 @@ export class MailService {
   private readonly from: string;
 
   constructor(private configService: ConfigService) {
-    // 初始化邮件发送器
+    const host = this.configService.get<string>('MAIL_HOST');
+    const port = this.configService.get<number>('MAIL_PORT') ?? 587;
+    // 465 端口用 SSL，其它端口用 STARTTLS
+    const secure = port === 465;
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('MAIL_HOST'),
-      port: this.configService.get<number>('MAIL_PORT'),
-      secure: false, // 使用STARTTLS
+      host,
+      port,
+      secure,
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 30000,
+      tls: {
+        servername: host,
+        rejectUnauthorized: true,
+      },
       auth: {
         user: this.configService.get<string>('MAIL_USER'),
         pass: this.configService.get<string>('MAIL_PASSWORD'),
       },
     });
 
-    this.from = `"深圳数学学会数学竞赛平台" <${this.configService.get<string>('MAIL_USER')}>`;
+    this.from = `"深圳数学学会论文评选平台" <${this.configService.get<string>('MAIL_USER')}>`;
   }
 
   /**
@@ -32,7 +42,7 @@ export class MailService {
       const info = await this.transporter.sendMail({
         from: this.from,
         to: email,
-        subject: '【深圳数学学会数学竞赛平台】邮箱验证码',
+        subject: '【深圳数学学会论文评选平台】邮箱验证码',
         html: `
           <!DOCTYPE html>
           <html>
@@ -65,7 +75,7 @@ export class MailService {
               </div>
               <div class="footer">
                 <p>此邮件由系统自动发送,请勿直接回复。</p>
-                <p>&copy; 深圳数学学会数学竞赛平台 All Rights Reserved.</p>
+                <p>&copy; 深圳数学学会论文评选平台 All Rights Reserved.</p>
               </div>
             </div>
           </body>
@@ -82,57 +92,9 @@ export class MailService {
   }
 
   /**
-   * 发送欢迎邮件
+   * 发送欢迎邮件（已关闭，不实际发送）
    */
-  async sendWelcomeEmail(email: string, name: string): Promise<boolean> {
-    try {
-      const info = await this.transporter.sendMail({
-        from: this.from,
-        to: email,
-        subject: '欢迎加入深圳数学学会数学竞赛平台',
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-              .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>🎉 欢迎加入!</h1>
-              </div>
-              <div class="content">
-                <p>亲爱的 ${name},</p>
-                <p>欢迎加入深圳数学学会数学竞赛平台!您已成功注册账号。</p>
-                <p>您现在可以:</p>
-                <ul>
-                  <li>浏览和报名各类数学竞赛</li>
-                  <li>提交您的研究论文</li>
-                  <li>查看竞赛资源和获奖信息</li>
-                </ul>
-                <p>祝您在平台上有愉快的体验!</p>
-              </div>
-              <div class="footer">
-                <p>&copy; 2026 深圳数学学会数学竞赛平台 All Rights Reserved.</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      });
-
-      this.logger.log(`欢迎邮件已发送至 ${email}, MessageID: ${info.messageId}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`发送欢迎邮件失败: ${error.message}`, error.stack);
-      return false;
-    }
+  async sendWelcomeEmail(_email: string, _name: string): Promise<boolean> {
+    return true;
   }
 }

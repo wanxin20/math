@@ -94,7 +94,7 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400"></span>
             </span>
-            {lang === 'zh' ? '教师专业成长年度评选进行中' : 'Annual Professional Growth Selection Open'}
+            {lang === 'zh' ? '论文评选进行中' : 'Paper Evaluation Open'}
           </div>
           <h1 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1] tracking-tight">
             {t.heroTitle}

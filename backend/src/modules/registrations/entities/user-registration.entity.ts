@@ -46,6 +46,24 @@ export class UserRegistration {
   @Column({ type: 'text', nullable: true, comment: '备注信息' })
   notes: string;
 
+  @Column({ name: 'need_invoice', type: 'tinyint', default: 0, comment: '是否需要发票（0否1是）' })
+  needInvoice: number;
+
+  @Column({ name: 'invoice_title', type: 'varchar', length: 200, nullable: true, comment: '发票抬头' })
+  invoiceTitle: string | null;
+
+  @Column({ name: 'invoice_tax_no', type: 'varchar', length: 50, nullable: true, comment: '纳税人识别号/税号' })
+  invoiceTaxNo: string | null;
+
+  @Column({ name: 'invoice_address', type: 'varchar', length: 500, nullable: true, comment: '发票地址' })
+  invoiceAddress: string | null;
+
+  @Column({ name: 'invoice_phone', type: 'varchar', length: 30, nullable: true, comment: '发票联系电话' })
+  invoicePhone: string | null;
+
+  @Column({ name: 'invoice_email', type: 'varchar', length: 100, nullable: true, comment: '发票邮箱' })
+  invoiceEmail: string | null;
+
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 

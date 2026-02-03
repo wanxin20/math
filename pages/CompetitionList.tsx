@@ -117,7 +117,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
         <h1 className="text-3xl font-bold text-gray-900 mb-4">{lang === 'zh' ? '竞赛中心' : 'Competition Center'}</h1>
         <p className="text-gray-500 mb-8 max-w-2xl">
           {lang === 'zh' 
-            ? '请选择您要参与的教研论文或案例评选。报名后，请在个人中心完成缴费并上传最终稿件。' 
+            ? '请选择您要参与的论文评选。报名后，请在个人中心完成缴费并上传最终稿件。' 
             : 'Select a research paper or case selection to participate. After application, pay and upload in your dashboard.'}
         </p>
 
@@ -211,7 +211,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">{lang === 'zh' ? '对象' : 'Target'}</span>
-                    <span className="text-sm font-medium text-gray-700">{lang === 'zh' ? '在职教师及教研员' : 'Teachers & Researchers'}</span>
+                    <span className="text-sm font-medium text-gray-700">{lang === 'zh' ? '数学及相关学科研究人员' : 'Teachers & Researchers'}</span>
                   </div>
                 </div>
               </div>
@@ -263,7 +263,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                     {lang === 'zh' ? '立即报名' : 'Apply Now'}
                   </button>
                 )}
-                <button className="text-indigo-600 text-xs font-semibold hover:underline">{lang === 'zh' ? '查看申报指南' : 'View Guidelines'}</button>
+                <button className="text-indigo-600 text-xs font-semibold hover:underline">{lang === 'zh' ? '' : 'View Guidelines'}</button>
               </div>
             </div>
           );

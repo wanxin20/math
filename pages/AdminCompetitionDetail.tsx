@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { API_BASE_URL } from '../constants';
@@ -29,6 +30,8 @@ interface Registration {
     submissionFileUrl: string;
     submissionFileSize: number;
     submissionTime: string;
+    /** 多文件列表 */
+    submissionFiles?: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }>;
   };
   notes?: string;
 }
@@ -50,6 +53,33 @@ const AdminCompetitionDetail: React.FC = () => {
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  /** 当前展开下拉的操作行（报名记录 id）；下拉通过 portal 挂到 body，不随表格裁剪 */
+  const [openDropdownRegId, setOpenDropdownRegId] = useState<number | null>(null);
+  const [dropdownAnchor, setDropdownAnchor] = useState<{ left: number; top: number } | null>(null);
+
+  const closeDropdown = () => {
+    setOpenDropdownRegId(null);
+    setDropdownAnchor(null);
+  };
+
+  const handleExportExcel = async () => {
+    if (!id) return;
+    setExporting(true);
+    try {
+      const result = await api.registration.exportExcel(id);
+      if (result.success) {
+        alert('导出成功，请查看下载文件。');
+      } else {
+        alert(result.message || '导出失败');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('导出失败');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -166,9 +196,20 @@ const AdminCompetitionDetail: React.FC = () => {
 
       {/* 报名列表 */}
       <div className="bg-white p-6 rounded-lg shadow-sm">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          报名列表 ({registrations.length}人)
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-bold text-gray-900">
+            报名列表 ({registrations.length}人)
+          </h2>
+          <button
+            type="button"
+            disabled={exporting || registrations.length === 0}
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <i className={`fas fa-file-excel ${exporting ? 'animate-pulse' : ''}`}></i>
+            {exporting ? '导出中…' : '导出 Excel'}
+          </button>
+        </div>
 
         {registrations.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -241,19 +282,34 @@ const AdminCompetitionDetail: React.FC = () => {
                               {new Date(reg.paperSubmission.submissionTime).toLocaleString('zh-CN')}
                             </div>
                           )}
+                          {reg.paperSubmission.submissionFiles?.length ? (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {reg.paperSubmission.submissionFiles.length} 个文件
+                            </div>
+                          ) : null}
                         </div>
                       ) : (
                         <span className="text-gray-400">未提交</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 text-sm whitespace-nowrap">
                       {reg.paperSubmission && (
                         <button
-                          onClick={() => handleViewPaper(reg.paperSubmission!.submissionFileUrl)}
-                          className="text-indigo-600 hover:text-indigo-900 font-medium flex items-center gap-1"
+                          type="button"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            if (openDropdownRegId === reg.id) {
+                              closeDropdown();
+                            } else {
+                              setOpenDropdownRegId(reg.id);
+                              setDropdownAnchor({ left: rect.left, top: rect.bottom + 4 });
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-medium text-sm"
                         >
-                          <i className="fas fa-eye"></i>
-                          查看论文
+                          <i className="fas fa-folder-open"></i>
+                          查看文件
+                          <i className={`fas fa-chevron-down text-xs transition-transform ${openDropdownRegId === reg.id ? 'rotate-180' : ''}`}></i>
                         </button>
                       )}
                     </td>
@@ -264,6 +320,58 @@ const AdminCompetitionDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 下拉框通过 portal 挂到 body，脱离竞赛卡片；点击空白遮罩关闭 */}
+      {openDropdownRegId != null && dropdownAnchor && typeof document !== 'undefined' && createPortal(
+        (() => {
+          const reg = registrations.find((r) => r.id === openDropdownRegId);
+          const ps = reg?.paperSubmission;
+          return (
+            <>
+              <div
+                className="fixed inset-0 z-[9998]"
+                aria-hidden
+                onClick={closeDropdown}
+              />
+              <div
+                className="fixed z-[9999] min-w-[200px] max-w-[320px] py-1 bg-white border border-gray-200 rounded-lg shadow-xl"
+                style={{ left: dropdownAnchor.left, top: dropdownAnchor.top }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {ps?.submissionFiles?.length ? (
+                  ps.submissionFiles.map((f, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        handleViewPaper(f.fileUrl);
+                        closeDropdown();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                    >
+                      <i className="fas fa-file-alt text-gray-400 flex-shrink-0"></i>
+                      <span className="truncate">{f.fileName || `文件${i + 1}`}</span>
+                    </button>
+                  ))
+                ) : ps ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleViewPaper(ps.submissionFileUrl);
+                      closeDropdown();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                  >
+                    <i className="fas fa-file-alt text-gray-400 flex-shrink-0"></i>
+                    <span className="truncate">{ps.submissionFileName || '查看论文'}</span>
+                  </button>
+                ) : null}
+              </div>
+            </>
+          );
+        })(),
+        document.body
+      )}
     </div>
   );
 };

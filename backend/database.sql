@@ -69,6 +69,12 @@ CREATE TABLE user_registrations (
         DEFAULT 'PENDING_PAYMENT' COMMENT '报名状态',
     registration_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
     notes TEXT COMMENT '备注信息',
+    need_invoice TINYINT(1) DEFAULT 0 COMMENT '是否需要发票（0否1是）',
+    invoice_title VARCHAR(200) COMMENT '发票抬头',
+    invoice_tax_no VARCHAR(50) COMMENT '纳税人识别号/税号',
+    invoice_address VARCHAR(500) COMMENT '发票地址',
+    invoice_phone VARCHAR(30) COMMENT '发票联系电话',
+    invoice_email VARCHAR(100) COMMENT '发票邮箱（接收电子发票）',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     

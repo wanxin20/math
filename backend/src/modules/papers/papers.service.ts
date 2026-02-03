@@ -24,10 +24,28 @@ export class PapersService {
   ) {}
 
   /**
-   * 提交论文（支持首次提交和重新提交）
+   * 提交论文（支持首次提交和重新提交；支持单文件或多文件）
    */
   async create(userId: string, createPaperSubmissionDto: CreatePaperSubmissionDto) {
-    const { registrationId, ...paperData } = createPaperSubmissionDto;
+    const { registrationId, submissionFiles, ...rest } = createPaperSubmissionDto;
+
+    // 归一化：多文件时用第一个填充单文件字段（兼容旧接口与列表展示）
+    const paperData = { ...rest };
+    if (submissionFiles && submissionFiles.length > 0) {
+      const first = submissionFiles[0];
+      paperData.submissionFileName = first.fileName;
+      paperData.submissionFileUrl = first.fileUrl;
+      paperData.submissionFileSize = first.size ?? rest.submissionFileSize;
+      paperData.submissionFileType = first.mimetype ?? rest.submissionFileType;
+      (paperData as any).submissionFiles = submissionFiles.map((f) => ({
+        fileName: f.fileName,
+        fileUrl: f.fileUrl,
+        size: f.size,
+        mimetype: f.mimetype,
+      }));
+    } else if (!rest.submissionFileName || !rest.submissionFileUrl) {
+      throw new BadRequestException('请提供文件：submissionFiles 或 submissionFileName + submissionFileUrl');
+    }
 
     // 1. 验证报名记录
     const registration = await this.registrationsRepository.findOne({

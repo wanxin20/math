@@ -45,6 +45,21 @@ MAIL_PASSWORD=# SMTP授权码(非邮箱登录密码)
 
 **重要**: 授权码不是邮箱登录密码,是用于第三方客户端登录的专用密码。
 
+### 163 邮箱配置
+
+```env
+MAIL_HOST=smtp.163.com
+MAIL_PORT=465
+MAIL_USER=你的邮箱@163.com
+MAIL_PASSWORD=SMTP授权码
+```
+
+若出现 `Unexpected socket close`，多为网络/防火墙拦截 465，可改用 **25 端口**（STARTTLS）:
+
+```env
+MAIL_PORT=25
+```
+
 ## 🔌 API 接口
 
 ### 1. 发送验证码

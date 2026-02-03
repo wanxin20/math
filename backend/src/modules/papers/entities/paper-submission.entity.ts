@@ -38,6 +38,10 @@ export class PaperSubmission {
   @Column({ name: 'submission_file_type', length: 50, nullable: true, comment: '文件类型' })
   submissionFileType: string;
 
+  /** 多文件：JSON 数组 [{ fileName, fileUrl, size?, mimetype? }]，为空则使用上面单文件字段 */
+  @Column({ name: 'submission_files', type: 'json', nullable: true, comment: '多文件列表' })
+  submissionFiles: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }> | null;
+
   @Column({
     name: 'submission_time',
     type: 'timestamp',
