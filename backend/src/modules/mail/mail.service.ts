@@ -12,18 +12,19 @@ export class MailService {
   constructor(private configService: ConfigService) {
     const host = this.configService.get<string>('MAIL_HOST');
     const port = this.configService.get<number>('MAIL_PORT') ?? 587;
-    // 465 端口用 SSL，其它端口用 STARTTLS
+    // 465 端口用 SSL 直连，587/25 用 STARTTLS（服务器上 25 常被云商封禁，465 易出现 Greeting never received，建议优先用 587）
     const secure = port === 465;
+    const tlsInsecure = this.configService.get<string>('MAIL_TLS_INSECURE') === 'true';
     this.transporter = nodemailer.createTransport({
       host,
       port,
       secure,
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 30000,
+      connectionTimeout: 30000,
+      greetingTimeout: 25000,
+      socketTimeout: 45000,
       tls: {
         servername: host,
-        rejectUnauthorized: true,
+        rejectUnauthorized: !tlsInsecure,
       },
       auth: {
         user: this.configService.get<string>('MAIL_USER'),

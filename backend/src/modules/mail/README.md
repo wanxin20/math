@@ -49,15 +49,34 @@ MAIL_PASSWORD=# SMTP授权码(非邮箱登录密码)
 
 ```env
 MAIL_HOST=smtp.163.com
-MAIL_PORT=465
+MAIL_PORT=587
 MAIL_USER=你的邮箱@163.com
 MAIL_PASSWORD=SMTP授权码
 ```
 
-若出现 `Unexpected socket close`，多为网络/防火墙拦截 465，可改用 **25 端口**（STARTTLS）:
+### 服务器部署（云主机 / VPS）常见问题
+
+在云服务器上发信时，常出现：
+
+| 端口 | 现象 | 原因 |
+|------|------|------|
+| **25** | `Connection timeout` | 多数云厂商**封禁出站 25**（防垃圾邮件），无法连上 163 的 25。 |
+| **465** | `Greeting never received` | 部分网络/代理对 SSL 直连不友好，或 163 对机房 IP 限制。 |
+| **587** | 推荐 | STARTTLS，云上一般**未封 587**，163 支持，优先使用。 |
+
+**建议**：在服务器 `.env` 里使用 **587**：
 
 ```env
-MAIL_PORT=25
+MAIL_HOST=smtp.163.com
+MAIL_PORT=587
+MAIL_USER=你的163邮箱@163.com
+MAIL_PASSWORD=SMTP授权码
+```
+
+若 587 仍超时，可适当放宽 TLS 校验（仅作排查用，不建议长期开启）：
+
+```env
+MAIL_TLS_INSECURE=true
 ```
 
 ## 🔌 API 接口
