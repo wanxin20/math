@@ -44,7 +44,8 @@ lerna-debug.log*
 .env
 .env.local
 .env.*.local
-
+.env.paper
+.env.reform
 # Upload files
 /uploads
 /public/uploads

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { competitionApi, uploadApi } from '../services/api';
+import { useSystem } from '../contexts/SystemContext';
 import { API_BASE_URL } from '../constants';
 
 interface Competition {
@@ -21,6 +22,7 @@ interface Competition {
 
 const AdminCompetitions: React.FC = () => {
   const navigate = useNavigate();
+  const { basePath } = useSystem();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -348,7 +350,7 @@ const AdminCompetitions: React.FC = () => {
                     </td>
                     <td style={{ padding: '16px' }}>
                       <button
-                        onClick={() => navigate(`/admin/competitions/${competition.id}`)}
+                        onClick={() => navigate(`${basePath}/admin/competitions/${competition.id}`)}
                         style={{
                           marginRight: '8px',
                           padding: '6px 12px',

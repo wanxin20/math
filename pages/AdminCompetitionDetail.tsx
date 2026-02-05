@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useSystem } from '../contexts/SystemContext';
 import { API_BASE_URL } from '../constants';
 
 interface Registration {
@@ -50,6 +51,7 @@ interface Competition {
 const AdminCompetitionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { basePath } = useSystem();
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +149,7 @@ const AdminCompetitionDetail: React.FC = () => {
           <i className="fas fa-exclamation-circle text-6xl text-red-500 mb-4"></i>
           <p className="text-gray-600">竞赛不存在</p>
           <button 
-            onClick={() => navigate('/admin/competitions')}
+            onClick={() => navigate(basePath + '/admin/competitions')}
             className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
           >
             返回列表
@@ -163,7 +165,7 @@ const AdminCompetitionDetail: React.FC = () => {
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <button 
-            onClick={() => navigate('/admin/competitions')}
+            onClick={() => navigate(basePath + '/admin/competitions')}
             className="text-indigo-600 hover:text-indigo-800 flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>

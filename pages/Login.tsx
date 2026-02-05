@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { Language, translations } from '../i18n';
 import api from '../services/api';
+import { getSystem } from '../store/system';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -140,8 +141,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
         // 登录 - 不需要验证码
         const response = await api.auth.login(formData.email, formData.password);
         if (response.success && response.data) {
-          // 保存 token（后端返回的是 accessToken 驼峰命名）
-          localStorage.setItem('math_token', response.data.accessToken);
+          // 保存 token（按当前系统 key 存储，与 api 请求一致）
+          localStorage.setItem(`${getSystem()}_token`, response.data.accessToken);
           // 直接使用登录返回的用户信息
           if (response.data.user) {
             onLogin(response.data.user);

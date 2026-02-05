@@ -1,6 +1,30 @@
 // API 配置和工具
-// 开发环境使用完整URL，生产环境使用相对路径（由Nginx代理）
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// 根据系统选择不同的API地址
+import { getSystem } from '../store/system';
+
+/**
+ * 获取当前系统的 API 基础地址
+ * - 开发环境：paper系统使用 3000 端口，reform系统使用 3001 端口
+ * - 生产环境：通过Nginx代理到 /api/paper/v1 或 /api/reform/v1
+ */
+function getApiBaseUrl(): string {
+  const system = getSystem();
+  
+  // 如果环境变量指定了 API 地址，直接使用
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // 开发环境：根据系统使用不同端口
+  if (import.meta.env.DEV) {
+    return system === 'reform' 
+      ? 'http://localhost:3001/api/v1'
+      : 'http://localhost:3000/api/v1';
+  }
+  
+  // 生产环境：使用相对路径，由Nginx代理
+  return system === 'reform' ? '/api/reform/v1' : '/api/paper/v1';
+}
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -9,15 +33,22 @@ interface ApiResponse<T = any> {
   code?: number;
 }
 
+/** 当前系统的 token 键名，与后端多数据源/双实例配合 */
+function getTokenKey(): string {
+  const system = getSystem();
+  return `${system}_token`;
+}
+
 // 统一的请求封装
 async function request<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const token = localStorage.getItem('math_token');
-  
+  const token = localStorage.getItem(getTokenKey());
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
+    'X-System': getSystem(), // 后端据此切换数据源（若使用单实例多库）
     ...options.headers,
   };
 
@@ -26,7 +57,8 @@ async function request<T = any>(
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}${endpoint}`, {
       ...options,
       headers,
     });
@@ -202,9 +234,10 @@ export const registrationApi = {
 
   // 管理员：导出竞赛报名列表为 Excel（返回 blob 并触发下载）
   exportExcel: async (competitionId: string): Promise<{ success: boolean; message?: string }> => {
-    const token = localStorage.getItem('math_token');
+    const token = localStorage.getItem(getTokenKey());
+    const apiBaseUrl = getApiBaseUrl();
     try {
-      const response = await fetch(`${API_BASE_URL}/registrations/competition/${competitionId}/export`, {
+      const response = await fetch(`${apiBaseUrl}/registrations/competition/${competitionId}/export`, {
         method: 'GET',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -323,14 +356,15 @@ export const paperApi = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('math_token');
+    const token = localStorage.getItem(getTokenKey());
+    const apiBaseUrl = getApiBaseUrl();
     const headers: HeadersInit = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/upload/file`, {
+      const response = await fetch(`${apiBaseUrl}/upload/file`, {
         method: 'POST',
         headers,
         body: formData,
@@ -376,13 +410,14 @@ export const resourceApi = {
 
   // 下载资源
   download: async (id: string) => {
-    const token = localStorage.getItem('math_token');
+    const token = localStorage.getItem(getTokenKey());
+    const apiBaseUrl = getApiBaseUrl();
     const headers: HeadersInit = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    window.open(`${API_BASE_URL}/resources/${id}/download`, '_blank');
+    window.open(`${apiBaseUrl}/resources/${id}/download`, '_blank');
   },
 
   // 管理员：获取所有资源列表
@@ -553,12 +588,13 @@ export const userApi = {
 export const uploadApi = {
   // 上传文件
   uploadFile: async (file: File) => {
-    const token = localStorage.getItem('math_token');
+    const token = localStorage.getItem(getTokenKey());
+    const apiBaseUrl = getApiBaseUrl();
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/upload/file`, {
+      const response = await fetch(`${apiBaseUrl}/upload/file`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -589,12 +625,13 @@ export const uploadApi = {
 
   // 上传图片
   uploadImage: async (file: File) => {
-    const token = localStorage.getItem('math_token');
+    const token = localStorage.getItem(getTokenKey());
+    const apiBaseUrl = getApiBaseUrl();
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/upload/image`, {
+      const response = await fetch(`${apiBaseUrl}/upload/image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

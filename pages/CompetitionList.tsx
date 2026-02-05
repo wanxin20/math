@@ -4,6 +4,7 @@ import { Competition, RegistrationStatus, User } from '../types';
 import { Language } from '../i18n';
 import api from '../services/api';
 import NotificationModal from '../components/NotificationModal';
+import { useSystem } from '../contexts/SystemContext';
 
 interface CompetitionListProps {
   user: User | null;
@@ -14,6 +15,7 @@ interface CompetitionListProps {
 }
 
 const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, hasRegistered, getRegistrationStatus, lang }) => {
+  const { basePath } = useSystem();
   const [selectedCategory, setSelectedCategory] = useState<string>(lang === 'zh' ? '全部' : 'All');
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
 
   useEffect(() => {
     loadCompetitions();
-  }, []);
+  }, [basePath]); // 当系统切换时重新加载数据
 
   const loadCompetitions = async () => {
     setLoading(true);

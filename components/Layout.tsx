@@ -1,8 +1,9 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User } from '../types';
 import { Language, translations } from '../i18n';
+import { useSystem } from '../contexts/SystemContext';
+import { systemConfig } from '../store/system';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,18 +16,24 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
-  const t = translations[lang].nav;
+  const { system, basePath } = useSystem();
+  const isActive = (path: string) => {
+    const full = path === '/' ? basePath : basePath + path;
+    return location.pathname === full || location.pathname === full + '/';
+  };
+  const cfg = systemConfig[system];
+  const navTitle = lang === 'zh' ? cfg.navTitle : cfg.navTitleEn;
+  const t = { ...translations[lang].nav, title: navTitle };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col ${systemConfig[system].fontClass}`}>
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" onClick={closeMenu} className="flex items-center gap-2 group shrink-0">
+          <Link to={basePath + '/'} onClick={closeMenu} className="flex items-center gap-2 group shrink-0">
             <div className="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-700 transition">
               <i className="fas fa-feather-alt text-white text-xl"></i>
             </div>
@@ -37,18 +44,18 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className={`text-sm font-medium transition ${isActive('/') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.home}</Link>
-            <Link to="/competitions" className={`text-sm font-medium transition ${isActive('/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.competitions}</Link>
-            <Link to="/resources" className={`text-sm font-medium transition ${isActive('/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.resources}</Link>
+            <Link to={basePath + '/'} className={`text-sm font-medium transition ${isActive('/') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.home}</Link>
+            <Link to={basePath + '/competitions'} className={`text-sm font-medium transition ${isActive('/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.competitions}</Link>
+            <Link to={basePath + '/resources'} className={`text-sm font-medium transition ${isActive('/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.resources}</Link>
             {user && (
-              <Link to="/dashboard" className={`text-sm font-medium transition ${isActive('/dashboard') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.dashboard}</Link>
+              <Link to={basePath + '/dashboard'} className={`text-sm font-medium transition ${isActive('/dashboard') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.dashboard}</Link>
             )}
             {user && user.role === 'admin' && (
               <>
-                <Link to="/admin/users" className={`text-sm font-medium transition ${isActive('/admin/users') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.userMgmt}</Link>
-                <Link to="/admin/competitions" className={`text-sm font-medium transition ${isActive('/admin/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.compMgmt}</Link>
-                <Link to="/admin/resources" className={`text-sm font-medium transition ${isActive('/admin/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.resMgmt}</Link>
-                <Link to="/admin/news" className={`text-sm font-medium transition ${isActive('/admin/news') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.newsMgmt}</Link>
+                <Link to={basePath + '/admin/users'} className={`text-sm font-medium transition ${isActive('/admin/users') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.userMgmt}</Link>
+                <Link to={basePath + '/admin/competitions'} className={`text-sm font-medium transition ${isActive('/admin/competitions') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.compMgmt}</Link>
+                <Link to={basePath + '/admin/resources'} className={`text-sm font-medium transition ${isActive('/admin/resources') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.resMgmt}</Link>
+                <Link to={basePath + '/admin/news'} className={`text-sm font-medium transition ${isActive('/admin/news') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.newsMgmt}</Link>
               </>
             )}
           </nav>
@@ -72,7 +79,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="hidden sm:block bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition">
+              <Link to={basePath + '/login'} className="hidden sm:block bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition">
                 {t.login}
               </Link>
             )}
@@ -98,21 +105,21 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
             <div className="absolute top-16 left-0 w-full bg-white border-b border-gray-200 shadow-xl z-50 md:hidden animate-in slide-in-from-top-2 duration-200">
               <nav className="flex flex-col p-4 space-y-1">
                 <Link 
-                  to="/" 
+                  to={basePath + '/'} 
                   onClick={closeMenu} 
                   className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
                   <i className="fas fa-home w-8"></i>{t.home}
                 </Link>
                 <Link 
-                  to="/competitions" 
+                  to={basePath + '/competitions'} 
                   onClick={closeMenu} 
                   className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/competitions') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
                   <i className="fas fa-pen-fancy w-8"></i>{t.competitions}
                 </Link>
                 <Link 
-                  to="/resources" 
+                  to={basePath + '/resources'} 
                   onClick={closeMenu} 
                   className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/resources') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
@@ -120,7 +127,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                 </Link>
                 {user && (
                   <Link 
-                    to="/dashboard" 
+                    to={basePath + '/dashboard'} 
                     onClick={closeMenu} 
                     className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/dashboard') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                   >
@@ -130,28 +137,28 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                 {user && user.role === 'admin' && (
                   <>
                     <Link 
-                      to="/admin/users" 
+                      to={basePath + '/admin/users'} 
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/users') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
                       <i className="fas fa-users-cog w-8"></i>{t.userMgmt}
                     </Link>
                     <Link 
-                      to="/admin/competitions" 
+                      to={basePath + '/admin/competitions'} 
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/competitions') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
                       <i className="fas fa-trophy w-8"></i>{t.compMgmt}
                     </Link>
                     <Link 
-                      to="/admin/resources" 
+                      to={basePath + '/admin/resources'} 
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/resources') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
                       <i className="fas fa-folder-open w-8"></i>{t.resMgmt}
                     </Link>
                     <Link 
-                      to="/admin/news" 
+                      to={basePath + '/admin/news'} 
                       onClick={closeMenu} 
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/news') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
@@ -192,7 +199,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                   ) : (
                     <div className="px-4 pb-4">
                       <Link 
-                        to="/login" 
+                        to={basePath + '/login'} 
                         onClick={closeMenu} 
                         className="flex items-center justify-center w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-100"
                       >

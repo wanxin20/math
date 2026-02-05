@@ -18,7 +18,12 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
   const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
-  const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  
+  // CORS 配置：开发环境允许所有来源，生产环境使用配置的域名
+  const corsOrigin = nodeEnv === 'development' 
+    ? '*' 
+    : configService.get<string>('CORS_ORIGIN', '*');
 
   // 静态文件服务 - 提供上传文件访问
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
@@ -61,7 +66,7 @@ async function bootstrap() {
   // Swagger文档配置
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('教师竞赛平台 API')
+      .setTitle('论文评选平台 API')
       .setDescription('Teacher Research Paper Selection Platform API Documentation')
       .setVersion('1.0')
       .addBearerAuth(
@@ -101,11 +106,12 @@ async function bootstrap() {
   console.log(`
   ╔═══════════════════════════════════════════════════════════════╗
   ║                                                               ║
-  ║   🚀 教师竞赛平台后端服务已启动                        ║
+  ║   🚀 论文评选平台后端服务已启动                        ║
   ║                                                               ║
   ║   📝 应用运行在: http://localhost:${port}                        ║
   ║   📖 API文档地址: http://localhost:${port}/api-docs             ║
-  ║   🌍 环境: ${process.env.NODE_ENV}                              ║
+  ║   🌍 环境: ${nodeEnv}                                           ║
+  ║   🔒 CORS: ${corsOrigin === '*' ? '允许所有来源 (开发模式)' : corsOrigin}  ║
   ║                                                               ║
   ╚═══════════════════════════════════════════════════════════════╝
   `);

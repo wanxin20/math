@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { Language, translations } from '../i18n';
 import api from '../services/api';
 import { Competition } from '../types';
+import { useSystem } from '../contexts/SystemContext';
+import { systemConfig } from '../store/system';
 
 interface HomeProps {
   lang: Language;
@@ -19,7 +21,9 @@ interface NewsItem {
 }
 
 const Home: React.FC<HomeProps> = ({ lang }) => {
+  const { basePath, system } = useSystem();
   const t = translations[lang].home;
+  const cfg = systemConfig[system];
   const [featuredCompetitions, setFeaturedCompetitions] = useState<Competition[]>([]);
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +34,7 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
   useEffect(() => {
     loadFeaturedCompetitions();
     loadNews();
-  }, []);
+  }, [basePath]); // 当系统切换时重新加载数据
 
   const loadFeaturedCompetitions = async () => {
     setLoading(true);
@@ -94,20 +98,20 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400"></span>
             </span>
-            {lang === 'zh' ? '论文评选进行中' : 'Paper Evaluation Open'}
+            {lang === 'zh' ? cfg.homeBadge : cfg.homeBadgeEn}
           </div>
           <h1 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1] tracking-tight">
-            {t.heroTitle}
+            {lang === 'zh' ? cfg.heroTitle : cfg.heroTitleEn}
           </h1>
           <p className="text-xl md:text-2xl text-blue-100/80 mb-12 leading-relaxed font-light">
-            {t.heroSub}
+            {lang === 'zh' ? cfg.heroSub : cfg.heroSubEn}
           </p>
           <div className="flex flex-wrap gap-5">
-            <Link to="/competitions" className="bg-white text-indigo-900 px-10 py-4 rounded-2xl font-bold shadow-xl hover:bg-blue-50 transition transform hover:-translate-y-1 active:scale-95 flex items-center gap-2">
+            <Link to={basePath + '/competitions'} className="bg-white text-indigo-900 px-10 py-4 rounded-2xl font-bold shadow-xl hover:bg-blue-50 transition transform hover:-translate-y-1 active:scale-95 flex items-center gap-2">
               {t.ctaRegister}
               <i className="fas fa-arrow-right text-sm"></i>
             </Link>
-            <Link to="/resources" className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-10 py-4 rounded-2xl font-bold hover:bg-white/20 transition flex items-center gap-2">
+            <Link to={basePath + '/resources'} className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-10 py-4 rounded-2xl font-bold hover:bg-white/20 transition flex items-center gap-2">
               <i className="fas fa-book-open text-sm"></i>
               {t.ctaGuide}
             </Link>
@@ -183,7 +187,7 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
             <h2 className="text-4xl font-black text-gray-900 mb-4">{t.popular}</h2>
             <p className="text-gray-500 font-medium italic">Leading the future of education through rigorous inquiry.</p>
           </div>
-          <Link to="/competitions" className="bg-gray-100 text-gray-600 px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-600 hover:text-white transition flex items-center gap-2">
+          <Link to={basePath + '/competitions'} className="bg-gray-100 text-gray-600 px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-600 hover:text-white transition flex items-center gap-2">
             {t.viewAll}
             <i className="fas fa-external-link-alt text-[10px]"></i>
           </Link>
@@ -218,7 +222,7 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
                    ) : (
                      <>
                        <div className="absolute inset-0 opacity-10 group-hover:scale-125 transition-transform duration-700">
-                         <svg viewBox="0 0 200 200" className="w-full h-full"><path fill="#6366f1" d="M40,-64.1C51.6,-56.9,60.6,-45,67.6,-32C74.7,-19,79.9,-4.9,78.2,8.8C76.6,22.5,68.2,35.9,57.6,46.1C47.1,56.4,34.5,63.5,21,68.3C7.5,73.1,-7,75.6,-20.5,72C-34,68.4,-46.6,58.8,-56.3,47.1C-66,35.3,-72.9,21.5,-74.6,7.1C-76.3,-7.4,-72.8,-22.4,-65,-35.6C-57.2,-48.7,-45.1,-60.1,-31.6,-66.2C-18.1,-72.3,-3.3,-73.2,10.7,-68.9C24.7,-64.5,40,-64.1Z" transform="translate(100 100)" /></svg>
+                         <svg viewBox="0 0 200 200" className="w-full h-full"><path fill="#6366f1" d="M40,-64.1C51.6,-56.9,60.6,-45,67.6,-32C74.7,-19,79.9,-4.9,78.2,8.8C76.6,22.5,68.2,35.9,57.6,46.1C47.1,56.4,34.5,63.5,21,68.3C7.5,73.1,-7,75.6,-20.5,72C-34,68.4,-46.6,58.8,-56.3,47.1C-66,35.3,-72.9,21.5,-74.6,7.1C-76.3,-7.4,-72.8,-22.4,-65,-35.6C-57.2,-48.7,-45.1,-60.1,-31.6,-66.2C-18.1,-72.3,-3.3,-73.2,10.7,-68.9C24.7,-64.5,40,-64.1,40,-64.1Z" transform="translate(100 100)" /></svg>
                        </div>
                        <i className={`fas ${comp.id === 'pedagogy-2024' ? 'fa-book-reader' : comp.id === 'innovation-2024' ? 'fa-chalkboard-teacher' : 'fa-laptop-code'} text-7xl text-indigo-300 relative z-10 group-hover:rotate-12 transition-transform`}></i>
                      </>
@@ -233,7 +237,7 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Evaluation Fee</span>
                         <span className="text-xl font-black text-gray-900">￥{comp.fee}</span>
                      </div>
-                     <Link to="/competitions" className="bg-indigo-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-indigo-700 hover:rotate-90 transition-all shadow-lg shadow-indigo-200">
+                     <Link to={basePath + '/competitions'} className="bg-indigo-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-indigo-700 hover:rotate-90 transition-all shadow-lg shadow-indigo-200">
                         <i className="fas fa-plus"></i>
                      </Link>
                    </div>
@@ -243,7 +247,10 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
           ) : (
             <div className="col-span-3 text-center py-12 text-gray-500">
               <i className="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
-              <p>{lang === 'zh' ? '暂无竞赛信息' : 'No competitions available'}</p>
+              <p>{system === 'reform'
+                ? (lang === 'zh' ? '暂无竞赛信息' : 'No competitions available')
+                : (lang === 'zh' ? '暂无竞赛信息' : 'No competitions available')
+              }</p>
             </div>
           )}
         </div>

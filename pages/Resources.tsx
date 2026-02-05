@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useSystem } from '../contexts/SystemContext';
 
 const Resources: React.FC = () => {
+  const { basePath } = useSystem();
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadResources();
-  }, []);
+  }, [basePath]); // 当系统切换时重新加载数据
 
   const loadResources = async () => {
     setLoading(true);
