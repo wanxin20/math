@@ -51,18 +51,24 @@ export class UploadController {
    * 生成文件访问 URL
    * - 如果配置了 APP_URL，使用完整 URL（生产环境推荐）
    * - 否则使用相对路径（开发环境或 Nginx 反向代理）
+   * - 会根据 SYSTEM_PREFIX 环境变量自动添加系统前缀（paper 或 reform）
    */
   private getFileUrl(req: Request, relativePath: string): string {
     const appUrl = this.configService.get<string>('APP_URL');
+    const systemPrefix = this.configService.get<string>('SYSTEM_PREFIX') || 'paper';
+    
+    // 在 /uploads/ 后添加系统前缀
+    // 例如：/uploads/images/xxx.jpg -> /uploads/paper/images/xxx.jpg
+    const pathWithPrefix = relativePath.replace('/uploads/', `/uploads/${systemPrefix}/`);
     
     if (appUrl) {
       // 使用配置的完整 URL（生产环境）
-      return `${appUrl}${relativePath}`;
+      return `${appUrl}${pathWithPrefix}`;
     }
     
     // 使用相对路径（开发环境或 Nginx 代理）
     // 前端会自动拼接当前域名
-    return relativePath;
+    return pathWithPrefix;
   }
   @Post('file')
   @ApiOperation({ summary: '上传文件' })
