@@ -1,14 +1,33 @@
 // API 配置和工具
 // 根据系统选择不同的API地址
-import { getSystem } from '../store/system';
+import { getSystem, SystemType } from '../store/system';
+
+/**
+ * 从 URL 推断当前系统类型（避免时序问题）
+ * 优先从 window.location.hash 判断（因为使用 HashRouter）
+ */
+function getCurrentSystemFromUrl(): SystemType {
+  let system = getSystem(); // 默认值
+  
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash;
+    if (hash.startsWith('#/reform')) {
+      system = 'reform';
+    } else if (hash.startsWith('#/paper')) {
+      system = 'paper';
+    }
+  }
+  
+  return system;
+}
 
 /**
  * 获取当前系统的 API 基础地址
  * - 开发环境：paper系统使用 3000 端口，reform系统使用 3001 端口
- * - 生产环境：通过Nginx代理到 /api/paper/v1 或 /api/reform/v1
+ * - 生产环境：通过Nginx代理到 /api/paper/ 或 /api/reform/
  */
 function getApiBaseUrl(): string {
-  const system = getSystem();
+  const system = getCurrentSystemFromUrl();
   
   // 如果环境变量指定了 API 地址，直接使用
   if (import.meta.env.VITE_API_BASE_URL) {
@@ -23,7 +42,9 @@ function getApiBaseUrl(): string {
   }
   
   // 生产环境：使用相对路径，由Nginx代理
-  return system === 'reform' ? '/api/reform/v1' : '/api/paper/v1';
+  // Nginx 会将 /api/paper/ 代理到 http://127.0.0.1:3000/api/v1/
+  // 所以这里不需要包含 /v1
+  return system === 'reform' ? '/api/reform' : '/api/paper';
 }
 
 interface ApiResponse<T = any> {
@@ -35,7 +56,7 @@ interface ApiResponse<T = any> {
 
 /** 当前系统的 token 键名，与后端多数据源/双实例配合 */
 function getTokenKey(): string {
-  const system = getSystem();
+  const system = getCurrentSystemFromUrl();
   return `${system}_token`;
 }
 
@@ -45,10 +66,11 @@ async function request<T = any>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const token = localStorage.getItem(getTokenKey());
+  const system = getCurrentSystemFromUrl();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    'X-System': getSystem(), // 后端据此切换数据源（若使用单实例多库）
+    'X-System': system, // 后端据此切换数据源（若使用单实例多库）
     ...options.headers,
   };
 

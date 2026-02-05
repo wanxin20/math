@@ -102,16 +102,34 @@ async function bootstrap() {
     });
   }
 
+  // 获取数据库配置信息
+  const dbType = configService.get<string>('DB_TYPE', 'mysql');
+  const dbHost = configService.get<string>('DB_HOST', 'localhost');
+  const dbPort = configService.get<number>('DB_PORT', 3306);
+  const dbDatabase = configService.get<string>('DB_DATABASE', 'database');
+  const dbUsername = configService.get<string>('DB_USERNAME', 'root');
+
   await app.listen(port);
+  
+  // 根据端口判断是哪个系统
+  const systemName = port === 3001 ? '教改系统' : '论文评选系统';
+  const systemColor = port === 3001 ? '🟢' : '🔵';
+  
   console.log(`
   ╔═══════════════════════════════════════════════════════════════╗
   ║                                                               ║
-  ║   🚀 论文评选平台后端服务已启动                        ║
+  ║   🚀 ${systemColor} ${systemName}后端服务已启动                          ║
   ║                                                               ║
   ║   📝 应用运行在: http://localhost:${port}                        ║
   ║   📖 API文档地址: http://localhost:${port}/api-docs             ║
   ║   🌍 环境: ${nodeEnv}                                           ║
   ║   🔒 CORS: ${corsOrigin === '*' ? '允许所有来源 (开发模式)' : corsOrigin}  ║
+  ║                                                               ║
+  ║   💾 数据库连接信息:                                           ║
+  ║   ├─ 类型: ${dbType}                                            ║
+  ║   ├─ 主机: ${dbHost}:${dbPort}                                  ║
+  ║   ├─ 数据库: ${dbDatabase}                                      ║
+  ║   └─ 用户: ${dbUsername}                                        ║
   ║                                                               ║
   ╚═══════════════════════════════════════════════════════════════╝
   `);
