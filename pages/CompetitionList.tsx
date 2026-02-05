@@ -81,7 +81,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
         type: 'success',
         onConfirm: () => {
           setNotification({ ...notification, show: false });
-          window.location.href = '#/dashboard';
+          window.location.href = `#${basePath}/dashboard`;
         },
       });
     } catch (error: any) {
@@ -96,7 +96,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
           type: 'info',
           onConfirm: () => {
             setNotification({ ...notification, show: false });
-            window.location.href = '#/dashboard';
+            window.location.href = `#${basePath}/dashboard`;
           },
         });
       } else {
@@ -231,7 +231,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                       {lang === 'zh' ? '已报名成功' : 'Registered'}
                     </div>
                     <button 
-                      onClick={() => window.location.href = '#/dashboard'}
+                      onClick={() => window.location.href = `#${basePath}/dashboard`}
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition"
                     >
                       {lang === 'zh' ? '查看报名信息' : 'View Registration'}
@@ -244,7 +244,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                       {lang === 'zh' ? '待缴费' : 'Pending Payment'}
                     </div>
                     <button 
-                      onClick={() => window.location.href = '#/dashboard'}
+                      onClick={() => window.location.href = `#${basePath}/dashboard`}
                       className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-sm font-medium transition"
                     >
                       {lang === 'zh' ? '前往缴费' : 'Proceed to Payment'}
@@ -252,7 +252,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                   </>
                 ) : !user ? (
                   <button 
-                    onClick={() => window.location.href = '#/login'}
+                    onClick={() => window.location.href = `#${basePath}/login`}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 transition"
                   >
                     {lang === 'zh' ? '登录后报名' : 'Login to Apply'}
