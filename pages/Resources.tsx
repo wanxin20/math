@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useSystem } from '../contexts/SystemContext';
+import { systemConfig } from '../store/system';
 
 const Resources: React.FC = () => {
-  const { basePath } = useSystem();
+  const { basePath, system } = useSystem();
+  const cfg = systemConfig[system];
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,9 +29,10 @@ const Resources: React.FC = () => {
     }
   };
 
-  // 根据数据库中的 category 字段分组
-  const paperTemplates = resources.filter(r => r.category === '论文模板');
-  const ruleDocuments = resources.filter(r => r.category !== '论文模板');
+  // 根据数据库中的 category 字段分组（使用配置的类别名称）
+  const paperTemplates = resources.filter(r => r.category === cfg.resourceCategories.template);
+  const ruleDocuments = resources.filter(r => r.category === cfg.resourceCategories.rules);
+  const guideResources = resources.filter(r => r.category === cfg.resourceCategories.guide);
 
   return (
     <div className="space-y-12">
@@ -78,7 +81,7 @@ const Resources: React.FC = () => {
           <div className="bg-orange-100 w-12 h-12 rounded-2xl flex items-center justify-center text-orange-600 mb-6">
             <i className="fas fa-gavel text-2xl"></i>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">竞赛章程 & 规则</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">{cfg.resourceCategories.rules}</h3>
           <p className="text-gray-500 text-sm mb-6 leading-relaxed">
             详细列出了参赛资格、学术诚信要求、奖项设置以及评审标准。
           </p>
@@ -106,15 +109,34 @@ const Resources: React.FC = () => {
 
         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
           <div className="bg-purple-100 w-12 h-12 rounded-2xl flex items-center justify-center text-purple-600 mb-6">
-            <i className="fas fa-video text-2xl"></i>
+            <i className="fas fa-book-reader text-2xl"></i>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">指导视频</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">{cfg.resourceCategories.guide}</h3>
           <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-            由资深专家录制的赛前辅导视频，包含历年优秀论文分析。
+            {system === 'paper' 
+              ? '提供论文写作参考资料，包含历年优秀论文案例分析。' 
+              : '教学研究指导资料，包含教改论文撰写要点和案例分享。'}
           </p>
-          <button className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-purple-100">
-            前往视频库
-          </button>
+          <div className="space-y-4 text-sm">
+            {loading ? (
+              [1, 2].map((i) => (
+                <div key={i} className="h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+              ))
+            ) : guideResources.length > 0 ? (
+              guideResources.map((resource) => (
+                <div 
+                  key={resource.id}
+                  className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-purple-50 transition"
+                  onClick={() => api.resource.download(resource.id)}
+                >
+                  <i className="fas fa-file-alt text-purple-500"></i>
+                  <span>{resource.name || resource.title}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400 text-center py-4">暂无资料</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

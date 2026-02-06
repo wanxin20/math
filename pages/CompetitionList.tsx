@@ -5,6 +5,7 @@ import { Language } from '../i18n';
 import api from '../services/api';
 import NotificationModal from '../components/NotificationModal';
 import { useSystem } from '../contexts/SystemContext';
+import { systemConfig } from '../store/system';
 
 interface CompetitionListProps {
   user: User | null;
@@ -15,7 +16,8 @@ interface CompetitionListProps {
 }
 
 const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, hasRegistered, getRegistrationStatus, lang }) => {
-  const { basePath } = useSystem();
+  const { basePath, system } = useSystem();
+  const cfg = systemConfig[system];
   const [selectedCategory, setSelectedCategory] = useState<string>(lang === 'zh' ? '全部' : 'All');
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
         show: true,
         title: lang === 'zh' ? '报名成功' : 'Registration Successful',
         message: lang === 'zh' 
-          ? '您已成功报名！\n请前往个人中心完成缴费。' 
+          ? '您已成功报名！\n请前往个人中心提交论文并完成缴费。' 
           : 'Registration successful!\nPlease proceed to payment in your dashboard.',
         type: 'success',
         onConfirm: () => {
@@ -172,14 +174,14 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
         {filteredCompetitions.map(comp => {
           // 获取报名状态
           const registrationStatus = getRegistrationStatus ? getRegistrationStatus(comp.id) : null;
-          // 只有已缴费或已提交才算"已报名成功"
-          const isPaidOrSubmitted = registrationStatus === RegistrationStatus.PAID || 
-                                    registrationStatus === RegistrationStatus.SUBMITTED ||
-                                    registrationStatus === RegistrationStatus.UNDER_REVIEW ||
-                                    registrationStatus === RegistrationStatus.REVIEWED ||
-                                    registrationStatus === RegistrationStatus.AWARDED;
-          // 是否在等待缴费
-          const isPendingPayment = registrationStatus === RegistrationStatus.PENDING_PAYMENT;
+          // 已提交及之后的状态才算"已报名成功"
+          const isSubmittedOrBeyond = registrationStatus === RegistrationStatus.SUBMITTED ||
+                                      registrationStatus === RegistrationStatus.UNDER_REVIEW ||
+                                      registrationStatus === RegistrationStatus.REVIEWED ||
+                                      registrationStatus === RegistrationStatus.AWARDED;
+          // 是否在待提交或待支付状态
+          const isPendingSubmissionOrPayment = registrationStatus === RegistrationStatus.PENDING_SUBMISSION || 
+                                                registrationStatus === RegistrationStatus.PENDING_PAYMENT;
           // 判断是否已过截止日期
           const isPastDeadline = comp.deadline ? new Date(comp.deadline) < new Date() : false;
           
@@ -213,7 +215,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">{lang === 'zh' ? '对象' : 'Target'}</span>
-                    <span className="text-sm font-medium text-gray-700">{lang === 'zh' ? '数学及相关学科研究人员' : 'Teachers & Researchers'}</span>
+                    <span className="text-sm font-medium text-gray-700">{lang === 'zh' ? cfg.targetAudience : cfg.targetAudienceEn}</span>
                   </div>
                 </div>
               </div>
@@ -224,11 +226,11 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                     <i className="fas fa-lock mr-2"></i>
                     {lang === 'zh' ? '报名已截止' : 'Registration Closed'}
                   </div>
-                ) : isPaidOrSubmitted ? (
+                ) : isSubmittedOrBeyond ? (
                   <>
                     <div className="bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 w-full justify-center">
                       <i className="fas fa-check-circle"></i>
-                      {lang === 'zh' ? '已报名成功' : 'Registered'}
+                      {lang === 'zh' ? '已成功提交' : 'Submitted'}
                     </div>
                     <button 
                       onClick={() => window.location.href = `#${basePath}/dashboard`}
@@ -237,17 +239,21 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                       {lang === 'zh' ? '查看报名信息' : 'View Registration'}
                     </button>
                   </>
-                ) : isPendingPayment ? (
+                ) : isPendingSubmissionOrPayment ? (
                   <>
                     <div className="bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 w-full justify-center">
                       <i className="fas fa-clock"></i>
-                      {lang === 'zh' ? '待缴费' : 'Pending Payment'}
+                      {lang === 'zh' ? 
+                        (registrationStatus === RegistrationStatus.PENDING_SUBMISSION ? '待提交' : '待支付') : 
+                        (registrationStatus === RegistrationStatus.PENDING_SUBMISSION ? 'Pending Submission' : 'Pending Payment')}
                     </div>
                     <button 
                       onClick={() => window.location.href = `#${basePath}/dashboard`}
                       className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-sm font-medium transition"
                     >
-                      {lang === 'zh' ? '前往缴费' : 'Proceed to Payment'}
+                      {lang === 'zh' ? 
+                        (registrationStatus === RegistrationStatus.PENDING_SUBMISSION ? '前往提交' : '前往支付') : 
+                        (registrationStatus === RegistrationStatus.PENDING_SUBMISSION ? 'Submit Now' : 'Proceed to Payment')}
                     </button>
                   </>
                 ) : !user ? (

@@ -30,7 +30,7 @@ export class UserRegistration {
   @Column({
     type: 'enum',
     enum: RegistrationStatus,
-    default: RegistrationStatus.PENDING_PAYMENT,
+    default: RegistrationStatus.PENDING_SUBMISSION,
     comment: '报名状态',
   })
   status: RegistrationStatus;

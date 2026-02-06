@@ -57,17 +57,17 @@ export class RegistrationsService {
       throw new ConflictException('您已经报名过该竞赛');
     }
 
-    // 3. 创建报名记录
+    // 3. 创建报名记录（初始状态为待提交，用户可以先上传文件）
     const registration = this.registrationsRepository.create({
       userId,
       competitionId,
-      status: RegistrationStatus.PENDING_PAYMENT,
+      status: RegistrationStatus.PENDING_SUBMISSION,
       notes,
     });
 
     const savedRegistration = await this.registrationsRepository.save(registration);
 
-    // 4. 创建支付记录
+    // 4. 创建支付记录（初始状态为待支付）
     const payment = this.paymentsRepository.create({
       registrationId: savedRegistration.id,
       paymentAmount: competition.fee,
@@ -113,6 +113,36 @@ export class RegistrationsService {
       payment: reg.payments?.[0],
       paperSubmission: reg.paperSubmission,
     }));
+  }
+
+  /**
+   * 确认提交（用户上传文件后点击提交按钮，状态从 PENDING_SUBMISSION 变为 PENDING_PAYMENT）
+   */
+  async confirmSubmission(id: number, userId: string) {
+    const registration = await this.registrationsRepository.findOne({
+      where: { id, userId },
+      relations: ['paperSubmission'],
+    });
+
+    if (!registration) {
+      throw new NotFoundException('报名记录不存在');
+    }
+
+    if (registration.status !== RegistrationStatus.PENDING_SUBMISSION) {
+      throw new BadRequestException('仅待提交状态可以确认提交');
+    }
+
+    // 检查是否已上传文件
+    if (!registration.paperSubmission || !registration.paperSubmission.submissionFileUrl) {
+      throw new BadRequestException('请先上传论文文件');
+    }
+
+    // 更新状态为待支付
+    registration.status = RegistrationStatus.PENDING_PAYMENT;
+    await this.registrationsRepository.save(registration);
+
+    this.logger.log(`报名记录 ${id} 已确认提交，进入待支付状态`);
+    return registration;
   }
 
   /**

@@ -74,7 +74,7 @@ export class PaymentsService {
     await this.paymentsRepository.save(payment);
 
     // 4. 更新报名状态
-    registration.status = RegistrationStatus.PAID;
+    registration.status = RegistrationStatus.SUBMITTED;
     await this.registrationsRepository.save(registration);
 
     this.logger.log(`报名记录 ${registrationId} 支付成功`);
@@ -206,10 +206,10 @@ export class PaymentsService {
 
     await this.paymentsRepository.save(payment);
 
-    // 更新报名状态
+    // 更新报名状态为已提交
     await this.registrationsRepository.update(
       { id: payment.registrationId },
-      { status: RegistrationStatus.PAID },
+      { status: RegistrationStatus.SUBMITTED },
     );
 
     this.logger.log(`支付成功：报名ID=${payment.registrationId}, 商户订单号=${payment.paymentTransactionId}, 微信交易号=${orderInfo.transaction_id}`);
@@ -278,10 +278,10 @@ export class PaymentsService {
     if (updatePaymentDto.paymentStatus === PaymentStatus.SUCCESS) {
       payment.paymentTime = new Date();
 
-      // 更新报名状态为已支付
+      // 更新报名状态为已提交
       await this.registrationsRepository.update(
         { id: registrationId },
-        { status: RegistrationStatus.PAID },
+        { status: RegistrationStatus.SUBMITTED },
       );
     }
 

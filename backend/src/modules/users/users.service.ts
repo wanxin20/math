@@ -1,9 +1,12 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserStatus } from '@/common/enums/user-status.enum';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -104,5 +107,47 @@ export class UsersService {
       active: activeUsers,
       suspended: suspendedUsers,
     };
+  }
+
+  /**
+   * 用户自己更新个人信息（不包括邮箱和密码）
+   */
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<User> {
+    const user = await this.findOne(userId);
+
+    // 更新允许修改的字段
+    if (updateProfileDto.name) user.name = updateProfileDto.name;
+    if (updateProfileDto.institution) user.institution = updateProfileDto.institution;
+    if (updateProfileDto.title) user.title = updateProfileDto.title;
+    if (updateProfileDto.phone) user.phone = updateProfileDto.phone;
+
+    const updatedUser = await this.usersRepository.save(user);
+    this.logger.log(`用户更新个人信息: ${userId}`);
+
+    return updatedUser;
+  }
+
+  /**
+   * 修改密码（需要邮箱验证码）
+   */
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    const user = await this.findOne(userId);
+
+    // 验证邮箱是否匹配
+    if (user.email !== changePasswordDto.email) {
+      throw new BadRequestException('邮箱不匹配');
+    }
+
+    // 注意：这里需要验证验证码，但为了避免循环依赖，我们在controller中先验证
+    // 或者在这里调用一个独立的验证码服务
+
+    // 加密新密码
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    user.passwordHash = hashedPassword;
+
+    await this.usersRepository.save(user);
+    this.logger.log(`用户修改密码: ${userId}`);
+
+    return { message: '密码修改成功' };
   }
 }

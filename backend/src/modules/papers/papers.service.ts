@@ -56,10 +56,11 @@ export class PapersService {
       throw new NotFoundException('报名记录不存在');
     }
 
-    // 允许 PAID（已支付）或 SUBMITTED（已提交，重新提交）状态提交论文
-    if (registration.status !== RegistrationStatus.PAID && 
+    // 允许在待提交、待支付和已提交状态下上传文件（暂存）
+    if (registration.status !== RegistrationStatus.PENDING_SUBMISSION &&
+        registration.status !== RegistrationStatus.PENDING_PAYMENT && 
         registration.status !== RegistrationStatus.SUBMITTED) {
-      throw new BadRequestException('请先完成支付');
+      throw new BadRequestException('当前状态不允许上传文件');
     }
 
     // 2. 检查是否已提交论文（支持重新提交）
@@ -85,12 +86,8 @@ export class PapersService {
       this.logger.log(`用户 ${userId} 首次提交论文: ${paperData.paperTitle}`);
     }
 
-    // 3. 确保报名状态为已提交
-    if (registration.status !== RegistrationStatus.SUBMITTED) {
-      await this.registrationsRepository.update(registrationId, {
-        status: RegistrationStatus.SUBMITTED,
-      });
-    }
+    // 3. 文件上传后不自动改变状态（保持暂存状态）
+    // 只有在支付成功后才会变为 SUBMITTED 状态
 
     return savedPaper;
   }

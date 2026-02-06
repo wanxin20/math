@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { resourceApi, uploadApi } from '../services/api';
 import { API_BASE_URL } from '../constants';
+import { useSystem } from '../contexts/SystemContext';
+import { systemConfig } from '../store/system';
 
 interface Resource {
   id: number;
@@ -17,6 +19,8 @@ interface Resource {
 }
 
 const AdminResources: React.FC = () => {
+  const { system } = useSystem();
+  const cfg = systemConfig[system];
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -26,11 +30,18 @@ const AdminResources: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // 资源类别选项（根据当前系统配置）
+  const categoryOptions = [
+    cfg.resourceCategories.template,
+    cfg.resourceCategories.rules,
+    cfg.resourceCategories.guide,
+  ];
+
   const emptyResource: Partial<Resource> = {
     name: '',
     description: '',
     type: 'pdf',
-    category: '论文模板',
+    category: cfg.resourceCategories.template,
     fileUrl: '',
     fileSize: 0,
     isPublic: true,
@@ -559,11 +570,9 @@ const AdminResources: React.FC = () => {
                     onFocus={(e) => e.target.style.borderColor = '#667eea'}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   >
-                    <option value="论文模板">论文模板</option>
-                    <option value="申报表">申报表</option>
-                    <option value="写作规范">写作规范</option>
-                    <option value="评审标准">评审标准</option>
-                    <option value="其他">其他</option>
+                    {categoryOptions.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
 

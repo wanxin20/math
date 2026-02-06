@@ -142,12 +142,16 @@ const SystemApp: React.FC<SystemAppProps> = ({ system }) => {
     localStorage.removeItem(STORAGE_KEYS.registrations(system));
   };
 
+  const handleUpdateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+
   return (
     <SystemProvider system={system}>
       <Layout user={user} onLogout={handleLogout} lang={lang} setLang={setLang}>
         <Routes>
           <Route path="/" element={<Home lang={lang} />} />
-          <Route path="/login" element={user ? <Navigate to={`${basePath}/dashboard`} replace /> : <Login onLogin={setUser} lang={lang} />} />
+          <Route path="/login" element={user ? <Navigate to={`${basePath}/`} replace /> : <Login onLogin={setUser} lang={lang} />} />
           <Route path="/competitions" element={
             <CompetitionList
               user={user}
@@ -160,7 +164,14 @@ const SystemApp: React.FC<SystemAppProps> = ({ system }) => {
           <Route path="/resources" element={<Resources lang={lang} />} />
           <Route path="/dashboard" element={
             user ? (
-              <Dashboard user={user} registrations={registrations} onPay={handlePay} onSubmit={handleSubmitPaper} lang={lang} />
+              <Dashboard 
+                user={user} 
+                registrations={registrations} 
+                onPay={handlePay} 
+                onSubmit={handleSubmitPaper} 
+                onUpdateUser={handleUpdateUser}
+                lang={lang} 
+              />
             ) : (
               <Navigate to={`${basePath}/login`} replace />
             )

@@ -31,6 +31,15 @@ export class RegistrationsController {
     return this.registrationsService.findUserRegistrations(userId);
   }
 
+  @Post(':id/confirm-submission')
+  @ApiOperation({ summary: '确认提交（上传文件后，点击提交按钮，进入待支付状态）' })
+  async confirmSubmission(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('userId') userId: string,
+  ) {
+    return this.registrationsService.confirmSubmission(id, userId);
+  }
+
   @Patch(':id/invoice')
   @ApiOperation({ summary: '更新报名发票信息（缴费前）' })
   async updateInvoice(

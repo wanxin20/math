@@ -17,18 +17,56 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { CurrentUser } from '@/common/decorators/user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { VerificationCodeService } from '../mail/verification-code.service';
 
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly verificationCodeService: VerificationCodeService,
+  ) {}
 
   @Get('me')
   @ApiOperation({ summary: '获取当前用户详细信息' })
   async getCurrentUser(@CurrentUser('userId') userId: string) {
     return this.usersService.findOne(userId);
+  }
+
+  @Patch('me')
+  @ApiOperation({ summary: '更新当前用户个人信息' })
+  async updateProfile(
+    @CurrentUser('userId') userId: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(userId, updateProfileDto);
+  }
+
+  @Post('change-password')
+  @ApiOperation({ summary: '修改密码（需要邮箱验证码）' })
+  async changePassword(
+    @CurrentUser('userId') userId: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    // 先验证验证码
+    const isCodeValid = await this.verificationCodeService.verifyCode(
+      changePasswordDto.email,
+      changePasswordDto.code,
+    );
+    
+    if (!isCodeValid) {
+      return {
+        success: false,
+        message: '验证码错误或已过期',
+      };
+    }
+
+    // 验证码正确，修改密码
+    return this.usersService.changePassword(userId, changePasswordDto);
   }
 
   // 以下是管理员专用接口

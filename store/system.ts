@@ -35,6 +35,13 @@ export const systemConfig: Record<
     heroTitleEn: string;
     heroSub: string;
     heroSubEn: string;
+    targetAudience: string;
+    targetAudienceEn: string;
+    resourceCategories: {
+      template: string;
+      rules: string;
+      guide: string;
+    };
   }
 > = {
   paper: {
@@ -49,6 +56,13 @@ export const systemConfig: Record<
     heroTitleEn: 'Enhance Mathematics Art, Share Wisdom',
     heroSub: '欢迎来到深圳数学学会论文评选服务平台。在这里，您可以提交数学论文，参与高水平论文评选。',
     heroSubEn: 'Welcome to Shenzhen Mathematics Paper Evaluation Platform. Submit your papers and participate in high-level evaluation.',
+    targetAudience: '数学及相关学科研究人员',
+    targetAudienceEn: 'Math Researchers',
+    resourceCategories: {
+      template: '论文模板',
+      rules: '竞赛章程',
+      guide: '参考资料',
+    },
   },
   reform: {
     name: '教师论文竞赛',
@@ -62,5 +76,12 @@ export const systemConfig: Record<
     heroTitleEn: 'Enhance Mathematics Art, Share Teaching Wisdom',
     heroSub: '欢迎来到深圳数学学会教师论文竞赛平台。在这里，您可以提交教学研究成果，参与高水平论文竞赛。',
     heroSubEn: 'Welcome to Shenzhen Mathematics Teacher Paper Competition Platform. Submit your teaching research and participate in high-level competition.',
+    targetAudience: '数学教师及教研人员',
+    targetAudienceEn: 'Math Teachers & Researchers',
+    resourceCategories: {
+      template: '论文模板',
+      rules: '竞赛章程',
+      guide: '指导资料',
+    },
   },
 };

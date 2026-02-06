@@ -287,6 +287,13 @@ export const registrationApi = {
     }
   },
 
+  // 确认提交（上传文件后点击提交按钮）
+  confirmSubmission: async (registrationId: number) => {
+    return request(`/registrations/${registrationId}/confirm-submission`, {
+      method: 'POST',
+    });
+  },
+
   // 更新报名发票信息（缴费前）
   updateInvoice: async (
     registrationId: number,
@@ -549,24 +556,29 @@ export const newsApi = {
 
 // 用户相关 API
 export const userApi = {
-  // 获取用户信息
+  // 获取当前用户信息
   getProfile: async () => {
     return request('/users/me');
   },
 
-  // 更新用户信息
-  updateProfile: async (data: any) => {
-    return request('/users/profile', {
+  // 更新个人信息
+  updateProfile: async (data: {
+    name?: string;
+    institution?: string;
+    title?: string;
+    phone?: string;
+  }) => {
+    return request('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   },
 
-  // 修改密码
-  changePassword: async (oldPassword: string, newPassword: string) => {
+  // 修改密码（需要验证码）
+  changePassword: async (email: string, code: string, newPassword: string) => {
     return request('/users/change-password', {
       method: 'POST',
-      body: JSON.stringify({ oldPassword, newPassword }),
+      body: JSON.stringify({ email, code, newPassword }),
     });
   },
 
@@ -685,12 +697,12 @@ export const uploadApi = {
 
 export default {
   auth: authApi,
+  user: userApi,
   competition: competitionApi,
   registration: registrationApi,
   payment: paymentApi,
   paper: paperApi,
   resource: resourceApi,
   news: newsApi,
-  user: userApi,
   upload: uploadApi,
 };
