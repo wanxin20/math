@@ -3,6 +3,7 @@ import api from '../../../services/api';
 import { API_BASE_URL } from '../../../constants';
 import { Language } from '../../../i18n';
 import { NotificationState, ConfirmDialogState } from '../types';
+import { useOptimizedUpload } from './useOptimizedUpload';
 
 interface UsePaperSubmissionParams {
   myRegistrations: any[];
@@ -24,7 +25,9 @@ export function usePaperSubmission({
   lang,
 }: UsePaperSubmissionParams) {
   const [submittingPaper, setSubmittingPaper] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  
+  // 使用优化的上传hook
+  const { uploadFiles, uploadProgress, isUploading } = useOptimizedUpload();
 
   /** 点击「提交」按钮，确认提交并进入支付流程 */
   const handleSubmitClick = (compId: string) => {
@@ -46,7 +49,7 @@ export function usePaperSubmission({
     setConfirmDialog({
       show: true,
       title: lang === 'zh' ? '确认提交' : 'Confirm Submission',
-      message: lang === 'zh' ? '确认提交吗？提交后需支付评审费才能完成提交。（提交后且报名截止前可以修改文件）' : 'Confirm submission? You need to pay the review fee to complete the submission. (can be modified after submission)',  
+      message: lang === 'zh' ? '确认提交吗？提交后需支付评审费才能完成提交。提交后将无法修改文件，如需修改请联系管理员。' : 'Confirm submission? You need to pay the review fee to complete the submission. Once submitted, files cannot be modified. Please contact the administrator if you need to make changes.',  
       confirmText: lang === 'zh' ? '确认提交' : 'Confirm',
       cancelText: lang === 'zh' ? '取消' : 'Cancel',
       onConfirm: () => handleSubmitConfirmed(compId),
@@ -87,7 +90,7 @@ export function usePaperSubmission({
     await handleLocalSubmit(compId, files);
   };
 
-  /** 上传待提交列表中的全部文件（追加到已保存的文件） */
+  /** 上传待提交列表中的全部文件（追加到已保存的文件） - 使用并行上传优化 */
   const handleLocalSubmit = async (compId: string, files: FileList | File[]) => {
     const fileList = Array.from(files?.length ? files : []);
     if (fileList.length === 0) return;
@@ -100,37 +103,20 @@ export function usePaperSubmission({
         return;
       }
 
-      const uploaded: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }> = [];
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
-        const progressKey = `${compId}-${i}`;
-        
-        // 上传文件，并监听进度
-        const uploadResult = await api.upload.uploadFile(file, (percent) => {
-          setUploadProgress(prev => ({ ...prev, [progressKey]: percent }));
+      // 使用优化的并行上传（最多3个文件同时上传）
+      const uploaded = await uploadFiles(fileList, 3);
+
+      if (uploaded.length === 0) {
+        setNotification({
+          show: true,
+          title: lang === 'zh' ? '上传失败' : 'Upload Failed',
+          message: lang === 'zh' ? '所有文件上传失败，请重试' : 'All files failed to upload, please try again',
+          type: 'error',
         });
-        
-        if (!uploadResult.success || !uploadResult.data) {
-          // 清除进度
-          setUploadProgress(prev => {
-            const newProgress = { ...prev };
-            delete newProgress[progressKey];
-            return newProgress;
-          });
-          alert(uploadResult.message || (lang === 'zh' ? '文件上传失败' : 'File upload failed'));
-          return;
-        }
-        const { url: fileUrl, originalname, size, mimetype } = uploadResult.data;
-        uploaded.push({ fileName: originalname, fileUrl, size, mimetype });
-        
-        // 上传完成，清除进度
-        setUploadProgress(prev => {
-          const newProgress = { ...prev };
-          delete newProgress[progressKey];
-          return newProgress;
-        });
+        return;
       }
 
+      // 如果部分文件上传成功，继续提交
       const existingFiles = registration.paperSubmission?.submissionFiles || [];
       const allFiles = [...existingFiles, ...uploaded];
 
@@ -148,13 +134,26 @@ export function usePaperSubmission({
       }
 
       await loadMyRegistrations();
+      
+      // 提示上传成功
+      const successMessage = uploaded.length === fileList.length
+        ? (lang === 'zh' ? `成功上传 ${uploaded.length} 个文件` : `Successfully uploaded ${uploaded.length} files`)
+        : (lang === 'zh' ? `部分文件上传成功（${uploaded.length}/${fileList.length}）` : `Partially uploaded (${uploaded.length}/${fileList.length})`);
+      
+      setNotification({
+        show: true,
+        title: lang === 'zh' ? '上传成功' : 'Upload Success',
+        message: successMessage,
+        type: 'success',
+      });
+      
       onSubmit(compId, allFiles.length === 1 ? first.fileName : `${allFiles.length} files`);
     } catch (error: any) {
       console.error('Paper submission error:', error);
       setNotification({
         show: true,
         title: lang === 'zh' ? '保存失败' : 'Save Failed',
-        message: lang === 'zh' ? '文件保存失败，请重试' : 'File save failed, please try again',
+        message: error.message || (lang === 'zh' ? '文件保存失败，请重试' : 'File save failed, please try again'),
         type: 'error',
       });
     } finally {
@@ -251,7 +250,7 @@ export function usePaperSubmission({
   };
 
   return {
-    submittingPaper,
+    submittingPaper: submittingPaper || isUploading,
     uploadProgress,
     handlePaperFilesSelected,
     handleSubmitClick,

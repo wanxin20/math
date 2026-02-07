@@ -153,7 +153,7 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
 
                     <p className="text-xs text-blue-600 bg-blue-50 rounded px-2 py-1">
                       <i className="fas fa-info-circle mr-1"></i>
-                      {lang === 'zh' ? '可以继续添加文件或删除已保存的文件（提交后可以修改）' : 'You can add more files or delete saved files (can be modified after submission)'}
+                      {lang === 'zh' ? '可以继续添加文件或删除已保存的文件（提交后将无法修改）' : 'You can add more files or delete saved files (cannot be modified after submission)'}
                     </p>
                   </div>
 
@@ -261,74 +261,117 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
 
         {/* 状态2：待支付（PENDING_PAYMENT） */}
         {reg.status === RegistrationStatus.PENDING_PAYMENT && (
-          isPastDeadline ? (
-            <div className="text-gray-400 px-6 py-2 text-sm text-center w-full border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
-              <i className="fas fa-lock mr-2"></i>
-              {lang === 'zh' ? '报名已截止，无法支付' : 'Registration Closed'}
-            </div>
-          ) : (
-            <button
-              onClick={() => onPayClick(reg.competitionId)}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold w-full transition flex items-center justify-center gap-2"
-            >
-              <i className="fab fa-weixin"></i>
-              {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
-            </button>
-          )
+          <div className="flex flex-col gap-3 w-full">
+            {/* 已提交的文件列表（只读） */}
+            {reg.paperSubmission && reg.paperSubmission.submissionFileUrl && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-gray-800 font-semibold">
+                    <i className="fas fa-file-check text-blue-600 mr-2"></i>
+                    {lang === 'zh' ? '已提交的文件' : 'Submitted Files'}
+                    <span className="ml-2 text-xs font-normal text-gray-600">
+                      ({reg.paperSubmission.submissionFiles?.length || 1} 个)
+                    </span>
+                  </p>
+                </div>
+
+                <div className="space-y-2 mb-3">
+                  {(reg.paperSubmission.submissionFiles || []).map((file: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <i className="fas fa-file-alt text-blue-600 text-xs"></i>
+                        <span className="text-xs text-gray-700 truncate">{file.fileName}</span>
+                        {file.size && (
+                          <span className="text-xs text-gray-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => onViewPaper(file.fileUrl)}
+                        className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1"
+                        title={lang === 'zh' ? '查看' : 'View'}
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-xs text-orange-600 bg-orange-50 rounded px-2 py-1">
+                  <i className="fas fa-lock mr-1"></i>
+                  {lang === 'zh' ? '文件已提交，无法修改。如需修改请联系管理员。' : 'Files submitted and locked. Please contact the administrator to modify.'}
+                </p>
+              </div>
+            )}
+
+            {/* 支付按钮 */}
+            {isPastDeadline ? (
+              <div className="text-gray-400 px-6 py-2 text-sm text-center w-full border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
+                <i className="fas fa-lock mr-2"></i>
+                {lang === 'zh' ? '报名已截止，无法支付' : 'Registration Closed'}
+              </div>
+            ) : (
+              <button
+                onClick={() => onPayClick(reg.competitionId)}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold w-full transition flex items-center justify-center gap-2"
+              >
+                <i className="fab fa-weixin"></i>
+                {lang === 'zh' ? '微信支付' : 'WeChat Pay'}
+              </button>
+            )}
+          </div>
         )}
 
         {/* 状态3：已提交（SUBMITTED） */}
         {reg.status === RegistrationStatus.SUBMITTED && (
-          isPastDeadline ? (
-            <div className="text-gray-400 px-6 py-2 text-sm text-center w-full border border-gray-200 rounded-lg bg-gray-50">
-              <i className="fas fa-lock mr-2"></i>
-              {lang === 'zh' ? '已过提交截止时间' : 'Submission Closed'}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3 w-full">
-              {/* 上传进度条 */}
-              {currentProgress && currentProgress.length > 0 && (
-                <div className="space-y-2">
-                  {currentProgress.map(([key, percent]) => (
-                    <div key={key} className="bg-white border border-blue-200 rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs text-gray-600">
-                          <i className="fas fa-upload mr-1 text-blue-500"></i>
-                          {lang === 'zh' ? '正在上传...' : 'Uploading...'}
-                        </span>
-                        <span className="text-xs font-semibold text-blue-600">{percent}%</span>
+          <div className="flex flex-col gap-3 w-full">
+            {/* 已提交的文件列表（只读） */}
+            {reg.paperSubmission && reg.paperSubmission.submissionFileUrl && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-gray-800 font-semibold">
+                    <i className="fas fa-check-circle text-green-600 mr-2"></i>
+                    {lang === 'zh' ? '已提交的文件' : 'Submitted Files'}
+                    <span className="ml-2 text-xs font-normal text-gray-600">
+                      ({reg.paperSubmission.submissionFiles?.length || 1} 个)
+                    </span>
+                  </p>
+                </div>
+
+                <div className="space-y-2 mb-3">
+                  {(reg.paperSubmission.submissionFiles || []).map((file: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <i className="fas fa-file-alt text-green-600 text-xs"></i>
+                        <span className="text-xs text-gray-700 truncate">{file.fileName}</span>
+                        {file.size && (
+                          <span className="text-xs text-gray-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                        )}
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
-                          style={{ width: `${percent}%` }}
-                        ></div>
-                      </div>
+                      <button
+                        onClick={() => onViewPaper(file.fileUrl)}
+                        className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1"
+                        title={lang === 'zh' ? '查看' : 'View'}
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
                     </div>
                   ))}
                 </div>
-              )}
-              
-              <label className={`cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
-                <input
-                  type="file"
-                  className="hidden"
-                  multiple
-                  accept=".pdf,.doc,.docx,.zip,.rar,.7z,.txt,.md,.rtf,.xls,.xlsx,.ppt,.pptx,.csv,.json,.xml,.jpg,.jpeg,.png,.gif,.mp4,.mov"
-                  disabled={submittingPaper || (currentProgress && currentProgress.length > 0)}
-                  onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
-                />
-                <i className="fas fa-upload mr-2"></i>
-                {submittingPaper
-                  ? (lang === 'zh' ? '上传中...' : 'Uploading...')
-                  : (lang === 'zh' ? '重新上传文件' : 'Re-upload Files')
-                }
-                <span className="block text-xs font-normal text-gray-500 mt-0.5">
-                  {lang === 'zh' ? '选择后自动保存并替换' : 'Auto-save and replace'}
-                </span>
-              </label>
-            </div>
-          )
+
+                <p className="text-xs text-orange-600 bg-orange-50 rounded px-2 py-1">
+                  <i className="fas fa-lock mr-1"></i>
+                  {lang === 'zh' ? '文件已提交，无法修改。如需修改请联系管理员。' : 'Files submitted and locked. Please contact the administrator to modify.'}
+                </p>
+              </div>
+            )}
+
+            {isPastDeadline && (
+              <div className="text-gray-400 px-6 py-2 text-sm text-center w-full border border-gray-200 rounded-lg bg-gray-50">
+                <i className="fas fa-clock mr-2"></i>
+                {lang === 'zh' ? '已过提交截止时间' : 'Submission Closed'}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
