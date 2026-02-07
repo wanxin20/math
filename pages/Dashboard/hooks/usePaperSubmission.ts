@@ -24,6 +24,7 @@ export function usePaperSubmission({
   lang,
 }: UsePaperSubmissionParams) {
   const [submittingPaper, setSubmittingPaper] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
 
   /** 点击「提交」按钮，确认提交并进入支付流程 */
   const handleSubmitClick = (compId: string) => {
@@ -100,14 +101,34 @@ export function usePaperSubmission({
       }
 
       const uploaded: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }> = [];
-      for (const file of fileList) {
-        const uploadResult = await api.upload.uploadFile(file);
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const progressKey = `${compId}-${i}`;
+        
+        // 上传文件，并监听进度
+        const uploadResult = await api.upload.uploadFile(file, (percent) => {
+          setUploadProgress(prev => ({ ...prev, [progressKey]: percent }));
+        });
+        
         if (!uploadResult.success || !uploadResult.data) {
+          // 清除进度
+          setUploadProgress(prev => {
+            const newProgress = { ...prev };
+            delete newProgress[progressKey];
+            return newProgress;
+          });
           alert(uploadResult.message || (lang === 'zh' ? '文件上传失败' : 'File upload failed'));
           return;
         }
         const { url: fileUrl, originalname, size, mimetype } = uploadResult.data;
         uploaded.push({ fileName: originalname, fileUrl, size, mimetype });
+        
+        // 上传完成，清除进度
+        setUploadProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[progressKey];
+          return newProgress;
+        });
       }
 
       const existingFiles = registration.paperSubmission?.submissionFiles || [];
@@ -231,6 +252,7 @@ export function usePaperSubmission({
 
   return {
     submittingPaper,
+    uploadProgress,
     handlePaperFilesSelected,
     handleSubmitClick,
     handleDeleteSavedFile,

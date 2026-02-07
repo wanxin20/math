@@ -71,6 +71,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
   // 论文提交
   const {
     submittingPaper,
+    uploadProgress,
     handlePaperFilesSelected,
     handleSubmitClick,
     handleDeleteSavedFile,
@@ -179,12 +180,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
               <p className="text-gray-500">{lang === 'zh' ? '暂无报名记录' : 'No registrations yet'}</p>
             </div>
           )}
-          {userCompetitions.map(reg => (
+          {userCompetitions.map((reg, index) => (
             <RegistrationCard
               key={reg.competitionId || reg.id}
               reg={reg}
+              regIndex={index}
               lang={lang}
               submittingPaper={submittingPaper}
+              uploadProgress={uploadProgress}
               getStatusText={getStatusText}
               onPaperFilesSelected={handlePaperFilesSelected}
               onSubmitClick={handleSubmitClick}

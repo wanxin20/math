@@ -80,24 +80,53 @@ export class UploadController {
         fileSize: 100 * 1024 * 1024, // 100MB
       },
       fileFilter: (req, file, cb) => {
-        // 允许的文件类型
+        // 允许的文件类型（常见办公文档、压缩包、文本、图片、视频等）
         const allowedTypes = [
+          // PDF
           'application/pdf',
+          // Word 文档
           'application/msword',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          // Excel 表格
           'application/vnd.ms-excel',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          // PowerPoint 演示文稿
           'application/vnd.ms-powerpoint',
           'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          // 压缩包
+          'application/zip',
+          'application/x-zip-compressed',
+          'application/x-rar-compressed',
+          'application/x-7z-compressed',
+          'application/gzip',
+          'application/x-tar',
+          // 文本文件
+          'text/plain',
+          'text/markdown',
+          'text/csv',
+          'application/rtf',
+          // 图片
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'image/bmp',
+          'image/svg+xml',
+          // 视频
           'video/mp4',
           'video/quicktime',
-          'application/zip',
+          'video/x-msvideo',
+          'video/mpeg',
+          // 其他常见格式
+          'application/json',
+          'application/xml',
+          'text/xml',
         ];
 
         if (allowedTypes.includes(file.mimetype)) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('不支持的文件类型'), false);
+          cb(new BadRequestException(`不支持的文件类型: ${file.mimetype}`), false);
         }
       },
     }),

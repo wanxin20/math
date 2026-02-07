@@ -4,8 +4,10 @@ import { Language } from '../../../i18n';
 
 interface RegistrationCardProps {
   reg: any;
+  regIndex: number;
   lang: Language;
   submittingPaper: boolean;
+  uploadProgress: { [key: string]: number };
   getStatusText: (status: RegistrationStatus) => string;
   onPaperFilesSelected: (compId: string, fileList: FileList | null) => void;
   onSubmitClick: (compId: string) => void;
@@ -16,8 +18,10 @@ interface RegistrationCardProps {
 
 const RegistrationCard: React.FC<RegistrationCardProps> = ({
   reg,
+  regIndex,
   lang,
   submittingPaper,
+  uploadProgress,
   getStatusText,
   onPaperFilesSelected,
   onSubmitClick,
@@ -27,6 +31,17 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
 }) => {
   const deadline = reg.competition?.deadline;
   const isPastDeadline = deadline ? new Date(deadline) < new Date() : false;
+  
+  // 获取当前报名的上传进度
+  const getCurrentUploadProgress = () => {
+    const compId = reg.competitionId;
+    const progressEntries = Object.entries(uploadProgress).filter(([key]) => 
+      key.startsWith(`${compId}-`)
+    );
+    return progressEntries.length > 0 ? progressEntries : null;
+  };
+  
+  const currentProgress = getCurrentUploadProgress();
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
@@ -142,13 +157,37 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                     </p>
                   </div>
 
+                  {/* 上传进度条 */}
+                  {currentProgress && currentProgress.length > 0 && (
+                    <div className="space-y-2">
+                      {currentProgress.map(([key, percent]) => (
+                        <div key={key} className="bg-white border border-blue-200 rounded-lg p-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-600">
+                              <i className="fas fa-upload mr-1 text-blue-500"></i>
+                              {lang === 'zh' ? '正在上传...' : 'Uploading...'}
+                            </span>
+                            <span className="text-xs font-semibold text-blue-600">{percent}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                              style={{ width: `${percent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* 继续添加文件按钮 */}
-                  <label className="cursor-pointer bg-white border-2 border-blue-300 text-blue-600 px-6 py-2.5 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 hover:border-blue-400 transition block">
+                  <label className={`cursor-pointer bg-white border-2 border-blue-300 text-blue-600 px-6 py-2.5 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 hover:border-blue-400 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                     <input
                       type="file"
                       className="hidden"
                       multiple
-                      accept=".pdf,.doc,.docx,.zip"
+                      accept=".pdf,.doc,.docx,.zip,.rar,.7z,.txt,.md,.rtf,.xls,.xlsx,.ppt,.pptx,.csv,.json,.xml,.jpg,.jpeg,.png,.gif,.mp4,.mov"
+                      disabled={submittingPaper || (currentProgress && currentProgress.length > 0)}
                       onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
                     />
                     <i className="fas fa-plus mr-2"></i>
@@ -172,24 +211,49 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                   </button>
                 </>
               ) : (
-                <label className="cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block">
-                  <input
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept=".pdf,.doc,.docx,.zip"
-                    disabled={submittingPaper}
-                    onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
-                  />
-                  <i className="fas fa-upload mr-2"></i>
-                  {submittingPaper
-                    ? (lang === 'zh' ? '上传中...' : 'Uploading...')
-                    : (lang === 'zh' ? '上传论文文件' : 'Upload Files')
-                  }
-                  <span className="block text-xs font-normal text-gray-500 mt-0.5">
-                    {lang === 'zh' ? '支持多个文件，选择后自动保存' : 'Multiple files, auto-save'}
-                  </span>
-                </label>
+                <>
+                  {/* 上传进度条 */}
+                  {currentProgress && currentProgress.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {currentProgress.map(([key, percent]) => (
+                        <div key={key} className="bg-white border border-blue-200 rounded-lg p-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-600">
+                              <i className="fas fa-upload mr-1 text-blue-500"></i>
+                              {lang === 'zh' ? '正在上传...' : 'Uploading...'}
+                            </span>
+                            <span className="text-xs font-semibold text-blue-600">{percent}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                              style={{ width: `${percent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <label className={`cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <input
+                      type="file"
+                      className="hidden"
+                      multiple
+                      accept=".pdf,.doc,.docx,.zip,.rar,.7z,.txt,.md,.rtf,.xls,.xlsx,.ppt,.pptx,.csv,.json,.xml,.jpg,.jpeg,.png,.gif,.mp4,.mov"
+                      disabled={submittingPaper || (currentProgress && currentProgress.length > 0)}
+                      onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
+                    />
+                    <i className="fas fa-upload mr-2"></i>
+                    {submittingPaper
+                      ? (lang === 'zh' ? '上传中...' : 'Uploading...')
+                      : (lang === 'zh' ? '上传论文文件' : 'Upload Files')
+                    }
+                    <span className="block text-xs font-normal text-gray-500 mt-0.5">
+                      {lang === 'zh' ? '支持多个文件，选择后自动保存' : 'Multiple files, auto-save'}
+                    </span>
+                  </label>
+                </>
               )}
             </div>
           )
@@ -221,24 +285,49 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
               {lang === 'zh' ? '已过提交截止时间' : 'Submission Closed'}
             </div>
           ) : (
-            <label className="cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block">
-              <input
-                type="file"
-                className="hidden"
-                multiple
-                accept=".pdf,.doc,.docx,.zip"
-                disabled={submittingPaper}
-                onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
-              />
-              <i className="fas fa-upload mr-2"></i>
-              {submittingPaper
-                ? (lang === 'zh' ? '上传中...' : 'Uploading...')
-                : (lang === 'zh' ? '重新上传文件' : 'Re-upload Files')
-              }
-              <span className="block text-xs font-normal text-gray-500 mt-0.5">
-                {lang === 'zh' ? '选择后自动保存并替换' : 'Auto-save and replace'}
-              </span>
-            </label>
+            <div className="flex flex-col gap-3 w-full">
+              {/* 上传进度条 */}
+              {currentProgress && currentProgress.length > 0 && (
+                <div className="space-y-2">
+                  {currentProgress.map(([key, percent]) => (
+                    <div key={key} className="bg-white border border-blue-200 rounded-lg p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs text-gray-600">
+                          <i className="fas fa-upload mr-1 text-blue-500"></i>
+                          {lang === 'zh' ? '正在上传...' : 'Uploading...'}
+                        </span>
+                        <span className="text-xs font-semibold text-blue-600">{percent}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${percent}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <label className={`cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
+                <input
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept=".pdf,.doc,.docx,.zip,.rar,.7z,.txt,.md,.rtf,.xls,.xlsx,.ppt,.pptx,.csv,.json,.xml,.jpg,.jpeg,.png,.gif,.mp4,.mov"
+                  disabled={submittingPaper || (currentProgress && currentProgress.length > 0)}
+                  onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
+                />
+                <i className="fas fa-upload mr-2"></i>
+                {submittingPaper
+                  ? (lang === 'zh' ? '上传中...' : 'Uploading...')
+                  : (lang === 'zh' ? '重新上传文件' : 'Re-upload Files')
+                }
+                <span className="block text-xs font-normal text-gray-500 mt-0.5">
+                  {lang === 'zh' ? '选择后自动保存并替换' : 'Auto-save and replace'}
+                </span>
+              </label>
+            </div>
           )
         )}
       </div>

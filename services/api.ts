@@ -381,41 +381,71 @@ export const paperApi = {
   },
 
   // 上传论文文件（使用正确的upload端点）
-  uploadFile: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
+  uploadFile: async (file: File, onProgress?: (percent: number) => void) => {
+    return new Promise<ApiResponse>((resolve) => {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const token = localStorage.getItem(getTokenKey());
-    const apiBaseUrl = getApiBaseUrl();
-    const headers: HeadersInit = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+      const token = localStorage.getItem(getTokenKey());
+      const apiBaseUrl = getApiBaseUrl();
 
-    try {
-      const response = await fetch(`${apiBaseUrl}/upload/file`, {
-        method: 'POST',
-        headers,
-        body: formData,
+      const xhr = new XMLHttpRequest();
+
+      // 监听上传进度
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
       });
 
-      const data = await response.json();
+      // 监听完成
+      xhr.addEventListener('load', () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve({
+              success: true,
+              data: data.data || data,
+            });
+          } else {
+            resolve({
+              success: false,
+              message: data.message || '上传失败',
+            });
+          }
+        } catch (error: any) {
+          console.error('文件上传错误:', error);
+          resolve({
+            success: false,
+            message: error.message || '文件上传失败',
+          });
+        }
+      });
 
-      if (!response.ok) {
-        throw new Error(data.message || '上传失败');
+      // 监听错误
+      xhr.addEventListener('error', () => {
+        resolve({
+          success: false,
+          message: '网络错误，上传失败',
+        });
+      });
+
+      // 监听中断
+      xhr.addEventListener('abort', () => {
+        resolve({
+          success: false,
+          message: '上传已取消',
+        });
+      });
+
+      xhr.open('POST', `${apiBaseUrl}/upload/file`);
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       }
-
-      return {
-        success: true,
-        data: data.data || data,
-      };
-    } catch (error: any) {
-      console.error('文件上传错误:', error);
-      return {
-        success: false,
-        message: error.message || '文件上传失败',
-      };
-    }
+      xhr.send(formData);
+    });
   },
 };
 
@@ -620,41 +650,73 @@ export const userApi = {
 
 // 上传相关 API
 export const uploadApi = {
-  // 上传文件
-  uploadFile: async (file: File) => {
-    const token = localStorage.getItem(getTokenKey());
-    const apiBaseUrl = getApiBaseUrl();
-    const formData = new FormData();
-    formData.append('file', file);
+  // 上传文件（支持进度回调）
+  uploadFile: async (file: File, onProgress?: (percent: number) => void) => {
+    return new Promise<ApiResponse>((resolve) => {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    try {
-      const response = await fetch(`${apiBaseUrl}/upload/file`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
+      const token = localStorage.getItem(getTokenKey());
+      const apiBaseUrl = getApiBaseUrl();
+
+      const xhr = new XMLHttpRequest();
+
+      // 监听上传进度
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
       });
 
-      const result = await response.json();
+      // 监听完成
+      xhr.addEventListener('load', () => {
+        try {
+          const result = JSON.parse(xhr.responseText);
+          
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve({
+              success: true,
+              data: result.data,
+              message: result.message,
+            });
+          } else {
+            resolve({
+              success: false,
+              message: result.message || '上传失败',
+            });
+          }
+        } catch (error: any) {
+          console.error('文件上传错误:', error);
+          resolve({
+            success: false,
+            message: error.message || '文件上传失败',
+          });
+        }
+      });
 
-      if (!response.ok) {
-        throw new Error(result.message || '上传失败');
+      // 监听错误
+      xhr.addEventListener('error', () => {
+        resolve({
+          success: false,
+          message: '网络错误，上传失败',
+        });
+      });
+
+      // 监听中断
+      xhr.addEventListener('abort', () => {
+        resolve({
+          success: false,
+          message: '上传已取消',
+        });
+      });
+
+      xhr.open('POST', `${apiBaseUrl}/upload/file`);
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       }
-
-      // 后端通过TransformInterceptor包装后，数据在result.data中
-      return {
-        success: true,
-        data: result.data,
-        message: result.message,
-      };
-    } catch (error: any) {
-      console.error('文件上传错误:', error);
-      return {
-        success: false,
-        message: error.message || '文件上传失败',
-      };
-    }
+      xhr.send(formData);
+    });
   },
 
   // 上传图片
