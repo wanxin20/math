@@ -42,7 +42,7 @@ export const translations = {
     },
     dashboard: {
       welcome: '欢迎您',
-      sub: '在个人中心，您可以管理您的参赛论文',
+      sub: '',
       all: '全部项目',
       pending: '待办事项',
       status: {
