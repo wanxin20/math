@@ -10,7 +10,7 @@ export const translations = {
       dashboard: '个人中心',
       login: '登录 / 注册',
       logout: '退出登录',
-      title: '深圳数学学会论文评选平台',
+      title: '深圳市数学学会博士/硕士学位论文评选平台',
       userMgmt: '用户管理',
       compMgmt: '竞赛管理',
       resMgmt: '资源管理',
