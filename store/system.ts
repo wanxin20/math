@@ -54,8 +54,8 @@ export const systemConfig: Record<
     homeBadgeEn: 'Paper Evaluation Open',
     heroTitle: '展现数学思维，分享数学智慧',
     heroTitleEn: 'Enhance Mathematics Art, Share Wisdom',
-    heroSub: '欢迎来到深圳数学学会论文评选服务平台。在这里，您可以提交数学论文，参与高水平论文评选。',
-    heroSubEn: 'Welcome to Shenzhen Mathematics Paper Evaluation Platform. Submit your papers and participate in high-level evaluation.',
+    heroSub: '欢迎来到深圳市数学学会博士/硕士学位论文评选服务平台。在这里，您可以提交数学论文，参与高水平论文评选。',
+    heroSubEn: 'Welcome to Shenzhen Mathematics Doctor/Master Degree Paper Evaluation Platform. Submit your papers and participate in high-level evaluation.',
     targetAudience: '数学及相关学科研究人员',
     targetAudienceEn: 'Math Researchers',
     resourceCategories: {
