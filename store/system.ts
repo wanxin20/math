@@ -47,8 +47,8 @@ export const systemConfig: Record<
   paper: {
     name: '论文评选',
     nameEn: 'Paper Evaluation',
-    navTitle: '深圳数学学会论文评选平台',
-    navTitleEn: 'Shenzhen Mathematics Paper Evaluation',
+    navTitle: '深圳市数学学会博士/硕士学位论文评选平台',
+    navTitleEn: 'Shenzhen Mathematics Doctor/Master Degree Paper Evaluation',
     fontClass: 'font-sans', // 默认
     homeBadge: '论文评选进行中',
     homeBadgeEn: 'Paper Evaluation Open',
