@@ -75,6 +75,7 @@ CREATE TABLE user_registrations (
     invoice_address VARCHAR(500) COMMENT '发票地址',
     invoice_phone VARCHAR(30) COMMENT '发票联系电话',
     invoice_email VARCHAR(100) COMMENT '发票邮箱（接收电子发票）',
+    rejection_reason TEXT COMMENT '退回原因（管理员退回论文时填写）',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     

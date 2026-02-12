@@ -106,6 +106,32 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
             </div>
           ) : (
             <div className="flex flex-col gap-3 w-full">
+              {/* 显示退回提示（如果论文被退回过） */}
+              {reg.status === RegistrationStatus.PENDING_SUBMISSION && reg.paperSubmission?.submissionFileUrl && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2 mb-2">
+                    <i className="fas fa-exclamation-circle text-red-600 mt-0.5"></i>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-red-800 mb-1">
+                        {lang === 'zh' ? '论文已被退回' : 'Paper Rejected'}
+                      </p>
+                      {reg.rejectionReason && (
+                        <p className="text-sm text-red-700">
+                          <span className="font-medium">{lang === 'zh' ? '退回原因：' : 'Reason: '}</span>
+                          {reg.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-red-600 mt-2">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    {lang === 'zh' 
+                      ? '请修改后重新上传，无需再次缴费。' 
+                      : 'Please revise and resubmit. No additional payment required.'}
+                  </p>
+                </div>
+              )}
+
               {reg.paperSubmission && reg.paperSubmission.submissionFileUrl ? (
                 <>
                   {/* 已保存的文件区域 */}
@@ -180,6 +206,26 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                     </div>
                   )}
 
+                  {/* 文件格式要求提示 */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="text-xs text-gray-700 mb-2">
+                      <i className="fas fa-info-circle text-amber-600 mr-1"></i>
+                      <span className="font-semibold text-amber-800">
+                        {lang === 'zh' ? '文件格式要求：' : 'File Format Requirements:'}
+                      </span>
+                    </p>
+                    <ul className="text-xs space-y-1 ml-5">
+                      <li className="text-red-600 font-medium">
+                        <i className="fas fa-circle text-[6px] mr-2"></i>
+                        {lang === 'zh' ? 'DOC/DOCX 版本稿件：必须上传' : 'DOC/DOCX version: Required'}
+                      </li>
+                      <li className="text-blue-600">
+                        <i className="fas fa-circle text-[6px] mr-2"></i>
+                        {lang === 'zh' ? 'PDF 版本稿件：建议上传' : 'PDF version: Recommended'}
+                      </li>
+                    </ul>
+                  </div>
+
                   {/* 继续添加文件按钮 */}
                   <label className={`cursor-pointer bg-white border-2 border-blue-300 text-blue-600 px-6 py-2.5 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 hover:border-blue-400 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                     <input
@@ -234,6 +280,26 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                       ))}
                     </div>
                   )}
+
+                  {/* 文件格式要求提示 */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="text-xs text-gray-700 mb-2">
+                      <i className="fas fa-info-circle text-amber-600 mr-1"></i>
+                      <span className="font-semibold text-amber-800">
+                        {lang === 'zh' ? '文件格式要求：' : 'File Format Requirements:'}
+                      </span>
+                    </p>
+                    <ul className="text-xs space-y-1 ml-5">
+                      <li className="text-red-600 font-medium">
+                        <i className="fas fa-circle text-[6px] mr-2"></i>
+                        {lang === 'zh' ? 'DOC/DOCX 版本稿件：必须上传' : 'DOC/DOCX version: Required'}
+                      </li>
+                      <li className="text-blue-600">
+                        <i className="fas fa-circle text-[6px] mr-2"></i>
+                        {lang === 'zh' ? 'PDF 版本稿件：建议上传' : 'PDF version: Recommended'}
+                      </li>
+                    </ul>
+                  </div>
                   
                   <label className={`cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                     <input

@@ -112,6 +112,7 @@ export class RegistrationsService {
       registrationTime: reg.registrationTime,
       payment: reg.payments?.[0],
       paperSubmission: reg.paperSubmission,
+      rejectionReason: reg.rejectionReason,
     }));
   }
 
@@ -222,6 +223,44 @@ export class RegistrationsService {
   }
 
   /**
+   * 管理员：退回论文（允许用户重新上传，不需要再次缴费）
+   */
+  async rejectSubmission(id: number, reason?: string) {
+    const registration = await this.registrationsRepository.findOne({
+      where: { id },
+      relations: ['paperSubmission', 'payments'],
+    });
+
+    if (!registration) {
+      throw new NotFoundException('报名记录不存在');
+    }
+
+    // 只有已提交状态的才能退回
+    if (registration.status !== RegistrationStatus.SUBMITTED) {
+      throw new BadRequestException('只有已提交状态的论文才能退回');
+    }
+
+    // 检查是否已支付（退回不影响支付状态）
+    const payment = registration.payments?.[0];
+    if (!payment || payment.paymentStatus !== 'success') {
+      throw new BadRequestException('只有已支付的报名记录才能退回');
+    }
+
+    // 更新状态为待提交，记录退回原因（如果有）
+    registration.status = RegistrationStatus.PENDING_SUBMISSION;
+    registration.rejectionReason = reason || null;
+    
+    await this.registrationsRepository.save(registration);
+
+    this.logger.log(`报名记录 ${id} 已被管理员退回${reason ? `，原因: ${reason}` : ''}`);
+    
+    return {
+      success: true,
+      message: '论文已退回，用户可以重新上传',
+    };
+  }
+
+  /**
    * 管理员：获取某个竞赛的所有报名记录
    */
   async findByCompetitionId(competitionId: string) {
@@ -255,6 +294,7 @@ export class RegistrationsService {
       invoiceAddress: reg.invoiceAddress,
       invoicePhone: reg.invoicePhone,
       invoiceEmail: reg.invoiceEmail,
+      rejectionReason: reg.rejectionReason,
     }));
   }
 

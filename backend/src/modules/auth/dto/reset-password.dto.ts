@@ -1,5 +1,6 @@
 import { IsEmail, IsNotEmpty, IsString, Length, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsStrongPassword } from '@/common/validators/password.validator';
 
 export class ResetPasswordDto {
   @ApiProperty({ description: '邮箱地址', example: 'user@example.com' })
@@ -13,9 +14,9 @@ export class ResetPasswordDto {
   @IsNotEmpty({ message: '验证码不能为空' })
   code: string;
 
-  @ApiProperty({ description: '新密码', example: 'newPassword123' })
+  @ApiProperty({ description: '新密码', example: 'newPassword123!' })
   @IsString({ message: '密码必须是字符串' })
-  @MinLength(6, { message: '密码长度至少为6位' })
+  @IsStrongPassword({ message: '密码必须至少6位，且包含大写字母、小写字母、特殊字符中的至少两种' })
   @IsNotEmpty({ message: '密码不能为空' })
   newPassword: string;
 }

@@ -35,6 +35,7 @@ interface Registration {
     submissionFiles?: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }>;
   };
   notes?: string;
+  rejectionReason?: string;
 }
 
 interface Competition {
@@ -59,6 +60,19 @@ const AdminCompetitionDetail: React.FC = () => {
   /** 当前展开下拉的操作行（报名记录 id）；下拉通过 portal 挂到 body，不随表格裁剪 */
   const [openDropdownRegId, setOpenDropdownRegId] = useState<number | null>(null);
   const [dropdownAnchor, setDropdownAnchor] = useState<{ left: number; top: number } | null>(null);
+  
+  /** 退回对话框状态 */
+  const [rejectDialog, setRejectDialog] = useState<{
+    show: boolean;
+    registrationId: number | null;
+    userName: string;
+  }>({
+    show: false,
+    registrationId: null,
+    userName: '',
+  });
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
 
   const closeDropdown = () => {
     setOpenDropdownRegId(null);
@@ -131,6 +145,52 @@ const AdminCompetitionDetail: React.FC = () => {
     }
   };
 
+  /** 打开退回对话框 */
+  const handleOpenRejectDialog = (registrationId: number, userName: string) => {
+    setRejectDialog({
+      show: true,
+      registrationId,
+      userName,
+    });
+    setRejectReason('');
+    closeDropdown();
+  };
+
+  /** 关闭退回对话框 */
+  const handleCloseRejectDialog = () => {
+    setRejectDialog({
+      show: false,
+      registrationId: null,
+      userName: '',
+    });
+    setRejectReason('');
+  };
+
+  /** 确认退回 */
+  const handleConfirmReject = async () => {
+    if (!rejectDialog.registrationId) return;
+
+    setRejecting(true);
+    try {
+      const result = await api.registration.rejectSubmission(
+        rejectDialog.registrationId, 
+        rejectReason.trim() || undefined
+      );
+      if (result.success) {
+        alert('论文已退回，用户可以重新上传');
+        handleCloseRejectDialog();
+        await loadData(); // 重新加载数据
+      } else {
+        alert(result.message || '退回失败');
+      }
+    } catch (error) {
+      console.error('退回失败:', error);
+      alert('退回失败，请重试');
+    } finally {
+      setRejecting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -182,7 +242,7 @@ const AdminCompetitionDetail: React.FC = () => {
             <div className="font-semibold text-gray-900">{competition.title}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-500">分类</div>
+            <div className="text-sm text-gray-500">论文类型</div>
             <div className="font-semibold text-gray-900">{competition.category}</div>
           </div>
           <div>
@@ -295,25 +355,38 @@ const AdminCompetitionDetail: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm whitespace-nowrap">
-                      {reg.paperSubmission && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            if (openDropdownRegId === reg.id) {
-                              closeDropdown();
-                            } else {
-                              setOpenDropdownRegId(reg.id);
-                              setDropdownAnchor({ left: rect.left, top: rect.bottom + 4 });
-                            }
-                          }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-medium text-sm"
-                        >
-                          <i className="fas fa-folder-open"></i>
-                          查看文件
-                          <i className={`fas fa-chevron-down text-xs transition-transform ${openDropdownRegId === reg.id ? 'rotate-180' : ''}`}></i>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {reg.paperSubmission && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              if (openDropdownRegId === reg.id) {
+                                closeDropdown();
+                              } else {
+                                setOpenDropdownRegId(reg.id);
+                                setDropdownAnchor({ left: rect.left, top: rect.bottom + 4 });
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-medium text-sm"
+                          >
+                            <i className="fas fa-folder-open"></i>
+                            查看文件
+                            <i className={`fas fa-chevron-down text-xs transition-transform ${openDropdownRegId === reg.id ? 'rotate-180' : ''}`}></i>
+                          </button>
+                        )}
+                        {reg.status === 'SUBMITTED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRejectDialog(reg.id, reg.user?.name || '未知用户')}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 font-medium text-sm"
+                            title="退回论文让用户重新上传"
+                          >
+                            <i className="fas fa-undo"></i>
+                            退回
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -322,6 +395,63 @@ const AdminCompetitionDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 退回对话框 */}
+      {rejectDialog.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <i className="fas fa-exclamation-triangle text-orange-500"></i>
+              退回论文
+            </h3>
+            
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">用户：</span>{rejectDialog.userName}
+              </p>
+              <p className="text-sm text-amber-700 mt-2">
+                <i className="fas fa-info-circle mr-1"></i>
+                退回后，用户可以重新上传论文，无需再次缴费。
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                退回原因 <span className="text-gray-400 text-xs">(选填)</span>
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="例如：论文格式不符合要求，请按照模板重新排版后上传"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[100px] resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                <i className="fas fa-info-circle mr-1"></i>
+                如不填写原因，用户将看到"论文已被退回，请重新上传"的提示
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleCloseRejectDialog}
+                disabled={rejecting}
+                className="flex-1 py-2.5 px-4 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                disabled={rejecting}
+                className="flex-1 py-2.5 px-4 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {rejecting ? '退回中...' : '确认退回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 下拉框通过 portal 挂到 body，脱离竞赛卡片；点击空白遮罩关闭 */}
       {openDropdownRegId != null && dropdownAnchor && typeof document !== 'undefined' && createPortal(

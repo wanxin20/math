@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { RegistrationsService } from './registrations.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { RejectSubmissionDto } from './dto/reject-submission.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { CurrentUser } from '@/common/decorators/user.decorator';
@@ -82,5 +83,18 @@ export class RegistrationsController {
   @ApiOperation({ summary: '管理员：获取某个竞赛的所有报名记录' })
   async findByCompetitionId(@Param('competitionId') competitionId: string) {
     return this.registrationsService.findByCompetitionId(competitionId);
+  }
+
+  @Post(':id/reject')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: '管理员：退回论文（允许用户重新上传，不需要再次缴费）' })
+  @ApiResponse({ status: 200, description: '退回成功' })
+  @ApiResponse({ status: 404, description: '报名记录不存在' })
+  @ApiResponse({ status: 400, description: '只有已提交状态的论文才能退回' })
+  async rejectSubmission(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() rejectDto: RejectSubmissionDto,
+  ) {
+    return this.registrationsService.rejectSubmission(id, rejectDto.reason);
   }
 }

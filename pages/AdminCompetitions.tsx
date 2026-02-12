@@ -35,7 +35,7 @@ const AdminCompetitions: React.FC = () => {
   const emptyCompetition: Partial<Competition> = {
     title: '',
     description: '',
-    category: '基础教育',
+    category: '教学研究',
     fee: 0,
     deadline: '',
     startDate: '',
@@ -302,7 +302,7 @@ const AdminCompetitions: React.FC = () => {
               <thead>
                 <tr style={{ backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>标题</th>
-                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>类别</th>
+                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>论文类型</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>费用</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>截止日期</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>参与人数</th>
@@ -563,7 +563,7 @@ const AdminCompetitions: React.FC = () => {
                     color: '#374151',
                     fontSize: '14px'
                   }}>
-                    竞赛类别 <span style={{ color: '#ef4444' }}>*</span>
+                    论文类型 <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <select
                     value={editingCompetition.category}
@@ -582,10 +582,11 @@ const AdminCompetitions: React.FC = () => {
                     onFocus={(e) => e.target.style.borderColor = '#667eea'}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   >
-                    <option value="基础教育">基础教育</option>
-                    <option value="教学创新">教学创新</option>
-                    <option value="教育技术">教育技术</option>
-                    <option value="课程改革">课程改革</option>
+                    <option value="教学研究">教学研究</option>
+                    <option value="学习指导">学习指导</option>
+                    <option value="教材研究">教材研究</option>
+                    <option value="解题探究">解题探究</option>
+                    <option value="智慧课堂">智慧课堂</option>
                     <option value="其他">其他</option>
                   </select>
                 </div>

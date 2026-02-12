@@ -13,7 +13,7 @@ export class UpdateCompetitionDto {
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ description: '评选类别' })
+  @ApiPropertyOptional({ description: '论文类型' })
   @IsString()
   @IsOptional()
   category?: string;

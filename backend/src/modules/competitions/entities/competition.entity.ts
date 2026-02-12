@@ -20,7 +20,7 @@ export class Competition {
   @Column({ type: 'text', nullable: true, comment: '评选描述' })
   description: string;
 
-  @Column({ length: 50, comment: '评选类别' })
+  @Column({ length: 50, comment: '论文类型' })
   category: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '评审费用（元）' })

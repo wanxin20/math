@@ -294,6 +294,14 @@ export const registrationApi = {
     });
   },
 
+  // 管理员：退回论文（允许用户重新上传，不需要再次缴费）
+  rejectSubmission: async (registrationId: number, reason?: string) => {
+    return request(`/registrations/${registrationId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason || undefined }),
+    });
+  },
+
   // 更新报名发票信息（缴费前）
   updateInvoice: async (
     registrationId: number,

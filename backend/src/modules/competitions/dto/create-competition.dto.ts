@@ -13,7 +13,7 @@ export class CreateCompetitionDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ description: '评选类别', example: '基础教育' })
+  @ApiProperty({ description: '论文类型', example: '教学研究' })
   @IsString()
   @IsNotEmpty()
   category: string;

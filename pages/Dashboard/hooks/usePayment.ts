@@ -61,18 +61,39 @@ export function usePayment({ myRegistrations, loadMyRegistrations, onPay, setNot
     if (!invoiceFlow) return;
     const { compId, registrationId } = invoiceFlow;
     const { invoiceTitle, invoiceTaxNo, invoiceAddress, invoicePhone, invoiceEmail } = invoiceForm;
+    
+    // 验证必填字段
     if (!invoiceTitle?.trim()) {
       alert(lang === 'zh' ? '请填写发票抬头' : 'Please enter invoice title');
+      return;
+    }
+    if (!invoiceTaxNo?.trim()) {
+      alert(lang === 'zh' ? '请填写纳税人识别号' : 'Please enter Tax ID');
+      return;
+    }
+    if (!invoicePhone?.trim()) {
+      alert(lang === 'zh' ? '请填写联系电话' : 'Please enter phone number');
+      return;
+    }
+    if (!invoiceEmail?.trim()) {
+      alert(lang === 'zh' ? '请填写邮箱地址' : 'Please enter email address');
+      return;
+    }
+    
+    // 验证邮箱格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(invoiceEmail.trim())) {
+      alert(lang === 'zh' ? '请输入有效的邮箱地址' : 'Please enter a valid email address');
       return;
     }
     try {
       const res = await api.registration.updateInvoice(registrationId, {
         needInvoice: true,
         invoiceTitle: invoiceTitle.trim(),
-        invoiceTaxNo: invoiceTaxNo.trim() || undefined,
+        invoiceTaxNo: invoiceTaxNo.trim(),
         invoiceAddress: invoiceAddress.trim() || undefined,
-        invoicePhone: invoicePhone.trim() || undefined,
-        invoiceEmail: invoiceEmail.trim() || undefined,
+        invoicePhone: invoicePhone.trim(),
+        invoiceEmail: invoiceEmail.trim(),
       });
       if (!res.success) {
         alert(res.message || (lang === 'zh' ? '保存发票信息失败' : 'Failed to save invoice'));

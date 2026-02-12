@@ -64,6 +64,9 @@ export class UserRegistration {
   @Column({ name: 'invoice_email', type: 'varchar', length: 100, nullable: true, comment: '发票邮箱' })
   invoiceEmail: string | null;
 
+  @Column({ name: 'rejection_reason', type: 'text', nullable: true, comment: '退回原因（管理员退回论文时填写）' })
+  rejectionReason: string | null;
+
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 

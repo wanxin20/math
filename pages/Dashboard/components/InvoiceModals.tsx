@@ -77,14 +77,14 @@ const InvoiceModals: React.FC<InvoiceModalsProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {lang === 'zh' ? '纳税人识别号/税号' : 'Tax ID'}
+                {lang === 'zh' ? '纳税人识别号/税号' : 'Tax ID'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={invoiceForm.invoiceTaxNo}
                 onChange={(e) => onInvoiceFormChange({ ...invoiceForm, invoiceTaxNo: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder={lang === 'zh' ? '选填' : 'Optional'}
+                placeholder={lang === 'zh' ? '请输入纳税人识别号' : 'Enter Tax ID'}
               />
             </div>
             <div>
@@ -101,26 +101,26 @@ const InvoiceModals: React.FC<InvoiceModalsProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {lang === 'zh' ? '联系电话' : 'Phone'}
+                {lang === 'zh' ? '联系电话' : 'Phone'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={invoiceForm.invoicePhone}
                 onChange={(e) => onInvoiceFormChange({ ...invoiceForm, invoicePhone: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder={lang === 'zh' ? '选填' : 'Optional'}
+                placeholder={lang === 'zh' ? '请输入联系电话' : 'Enter phone number'}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {lang === 'zh' ? '邮箱（接收电子发票）' : 'Email (e-invoice)'}
+                {lang === 'zh' ? '邮箱（接收电子发票）' : 'Email (e-invoice)'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 value={invoiceForm.invoiceEmail}
                 onChange={(e) => onInvoiceFormChange({ ...invoiceForm, invoiceEmail: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder={lang === 'zh' ? '选填' : 'Optional'}
+                placeholder={lang === 'zh' ? '请输入邮箱地址' : 'Enter email address'}
               />
             </div>
           </div>

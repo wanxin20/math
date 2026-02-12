@@ -161,7 +161,7 @@ const SystemApp: React.FC<SystemAppProps> = ({ system }) => {
               lang={lang}
             />
           } />
-          <Route path="/resources" element={<Resources lang={lang} />} />
+          <Route path="/resources" element={<Resources user={user} lang={lang} />} />
           <Route path="/dashboard" element={
             user ? (
               <Dashboard 

@@ -3,8 +3,15 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useSystem } from '../contexts/SystemContext';
 import { systemConfig } from '../store/system';
+import { User } from '../types';
+import { Language } from '../i18n';
 
-const Resources: React.FC = () => {
+interface ResourcesProps {
+  user: User | null;
+  lang?: Language;
+}
+
+const Resources: React.FC<ResourcesProps> = ({ user, lang = 'zh' }) => {
   const { basePath, system } = useSystem();
   const cfg = systemConfig[system];
   const [resources, setResources] = useState<any[]>([]);
@@ -29,6 +36,22 @@ const Resources: React.FC = () => {
     }
   };
 
+  // 处理资源下载，对指导资料进行登录验证
+  const handleDownload = (resourceId: string, isGuideResource: boolean) => {
+    if (isGuideResource && !user) {
+      // 指导资料需要登录
+      if (confirm(lang === 'zh' 
+        ? '指导资料需要登录后才能查阅下载，是否前往登录？' 
+        : 'Login required to access guide resources. Go to login page?'
+      )) {
+        window.location.href = `#${basePath}/login`;
+      }
+      return;
+    }
+    // 已登录或非指导资料，允许下载
+    api.resource.download(resourceId);
+  };
+
   // 根据数据库中的 category 字段分组（使用配置的类别名称）
   const paperTemplates = resources.filter(r => r.category === cfg.resourceCategories.template);
   const ruleDocuments = resources.filter(r => r.category === cfg.resourceCategories.rules);
@@ -51,7 +74,7 @@ const Resources: React.FC = () => {
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-4">论文写作模板</h3>
           <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-            包含 Word 和 LaTeX 两个主流版本的标准排版格式，严格遵循学会竞赛规范。
+            包含 Word 模板的标准排版格式，严格遵循学会竞赛规范。
           </p>
           <div className="space-y-4">
             {loading ? (
@@ -63,7 +86,7 @@ const Resources: React.FC = () => {
                 <div 
                   key={resource.id} 
                   className="flex items-center justify-between group cursor-pointer"
-                  onClick={() => api.resource.download(resource.id)}
+                  onClick={() => handleDownload(resource.id, false)}
                 >
                   <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition">
                     {resource.name || resource.title}
@@ -95,7 +118,7 @@ const Resources: React.FC = () => {
                 <div 
                   key={resource.id}
                   className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-orange-50 transition"
-                  onClick={() => api.resource.download(resource.id)}
+                  onClick={() => handleDownload(resource.id, false)}
                 >
                   <i className="fas fa-info-circle text-orange-500"></i>
                   <span>{resource.name || resource.title}</span>
@@ -111,11 +134,24 @@ const Resources: React.FC = () => {
           <div className="bg-purple-100 w-12 h-12 rounded-2xl flex items-center justify-center text-purple-600 mb-6">
             <i className="fas fa-book-reader text-2xl"></i>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">{cfg.resourceCategories.guide}</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-900">{cfg.resourceCategories.guide}</h3>
+            {!user && (
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex items-center gap-1">
+                <i className="fas fa-lock"></i>
+                {lang === 'zh' ? '需登录' : 'Login Required'}
+              </span>
+            )}
+          </div>
           <p className="text-gray-500 text-sm mb-6 leading-relaxed">
             {system === 'paper' 
               ? '提供论文写作参考资料，包含历年优秀论文案例分析。' 
               : '教学研究指导资料，包含教改论文撰写要点和案例分享。'}
+            {!user && (
+              <span className="text-purple-600 font-medium">
+                {lang === 'zh' ? '（需注册登录后查阅）' : ' (Login required)'}
+              </span>
+            )}
           </p>
           <div className="space-y-4 text-sm">
             {loading ? (
@@ -126,11 +162,14 @@ const Resources: React.FC = () => {
               guideResources.map((resource) => (
                 <div 
                   key={resource.id}
-                  className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-purple-50 transition"
-                  onClick={() => api.resource.download(resource.id)}
+                  className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-purple-50 transition relative"
+                  onClick={() => handleDownload(resource.id, true)}
                 >
                   <i className="fas fa-file-alt text-purple-500"></i>
                   <span>{resource.name || resource.title}</span>
+                  {!user && (
+                    <i className="fas fa-lock text-gray-400 ml-auto" title={lang === 'zh' ? '需要登录' : 'Login required'}></i>
+                  )}
                 </div>
               ))
             ) : (

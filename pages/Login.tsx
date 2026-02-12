@@ -25,6 +25,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const lt = translations[lang].login;
+
+  // 验证密码强度
+  const validatePasswordStrength = (password: string): boolean => {
+    if (!password || password.length < 6) {
+      return false;
+    }
+
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
+
+    const conditionsMet = [hasUpperCase, hasLowerCase, hasSpecialChar].filter(Boolean).length;
+    return conditionsMet >= 2;
+  };
   const [formData, setFormData] = useState({
     username: '',
     name: '',
@@ -93,9 +107,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
         return;
       }
 
-      // 验证密码长度
-      if (resetData.newPassword.length < 6) {
-        setError(lang === 'zh' ? '密码长度至少为6位' : 'Password must be at least 6 characters');
+      // 验证密码强度
+      if (!validatePasswordStrength(resetData.newPassword)) {
+        setError(lt.passwordWeak);
         setLoading(false);
         return;
       }
@@ -152,6 +166,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
         }
       } else {
         // 注册 - 需要验证码
+        // 验证密码强度
+        if (!validatePasswordStrength(formData.password)) {
+          setError(lt.passwordWeak);
+          setLoading(false);
+          return;
+        }
+
         // 验证密码是否一致
         if (formData.password !== confirmPassword) {
           setError(lt.passwordMismatch);
@@ -260,6 +281,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
                   <i className={`fas ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                 </button>
               </div>
+              <p className="text-xs text-gray-500 mt-1 ml-1">{lt.passwordRequirement}</p>
             </div>
 
             <div>
@@ -436,6 +458,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
                 <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
               </button>
             </div>
+            {!isLogin && <p className="text-xs text-gray-500 mt-1 ml-1">{lt.passwordRequirement}</p>}
           </div>
 
           {!isLogin && (

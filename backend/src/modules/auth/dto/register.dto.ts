@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsEmail, IsNotEmpty, MinLength, Matches, Length } from 'class-validator';
+import { IsStrongPassword } from '@/common/validators/password.validator';
 
 export class RegisterDto {
   @ApiProperty({ description: '教师姓名', example: '张老师' })
@@ -13,9 +14,9 @@ export class RegisterDto {
   @IsNotEmpty({ message: '邮箱不能为空' })
   email: string;
 
-  @ApiProperty({ description: '密码', minLength: 6, example: 'Password123' })
+  @ApiProperty({ description: '密码', minLength: 6, example: 'Password123!' })
   @IsString()
-  @MinLength(6, { message: '密码至少6位' })
+  @IsStrongPassword({ message: '密码必须至少6位，且包含大写字母、小写字母、特殊字符中的至少两种' })
   password: string;
 
   @ApiProperty({ description: '任教单位/学校', example: 'XX小学' })
