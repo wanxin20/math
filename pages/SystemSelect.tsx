@@ -27,7 +27,7 @@ const SystemSelect: React.FC = () => {
             {systemConfig.paper.name}
           </h2>
           <p className="text-gray-500 text-sm mb-6">
-            深圳数学学会论文评选、报名、提交与评审
+            深圳市数学学会论文评选、报名、提交与评审
           </p>
           <span className="text-indigo-600 font-semibold inline-flex items-center gap-2">
             进入系统

@@ -221,7 +221,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
            <div className="col-span-1 md:col-span-2">
             <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
               <i className="fas fa-feather-alt text-blue-500 text-2xl"></i>
-              <span className="text-xl font-bold text-white">深圳数学学会</span>
+              <span className="text-xl font-bold text-white">深圳市数学学会</span>
             </div>
             <p className="text-sm">Empowering the next generation of educators through research.</p>
            </div>

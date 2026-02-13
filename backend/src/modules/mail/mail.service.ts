@@ -32,7 +32,7 @@ export class MailService {
       },
     });
 
-    this.from = `"深圳数学学会论文评选平台" <${this.configService.get<string>('MAIL_USER')}>`;
+    this.from = `"深圳市数学学会论文评选平台" <${this.configService.get<string>('MAIL_USER')}>`;
   }
 
   /**
