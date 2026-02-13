@@ -42,11 +42,20 @@ export function usePaperSubmission({
       return;
     }
 
+    // 检查是否是重新提交（REVISION_REQUIRED 状态）
+    const isRevision = registration.status === 'REVISION_REQUIRED';
+    
     // 弹窗确认
     setConfirmDialog({
       show: true,
       title: lang === 'zh' ? '确认提交' : 'Confirm Submission',
-      message: lang === 'zh' ? '确认提交吗？提交后需支付评审费才能完成提交。提交后将无法修改文件，如需修改请联系管理员。' : 'Confirm submission? You need to pay the review fee to complete the submission. Once submitted, files cannot be modified. Please contact the administrator if you need to make changes.',  
+      message: isRevision 
+        ? (lang === 'zh' 
+          ? '确认重新提交吗？您已支付过评审费，此次提交无需再次支付。提交后将无法修改文件，如需修改请联系管理员。' 
+          : 'Confirm resubmission? You have already paid the review fee, so no additional payment is required. Once submitted, files cannot be modified. Please contact the administrator if you need to make changes.')
+        : (lang === 'zh' 
+          ? '确认提交吗？提交后需支付评审费才能完成提交。提交后将无法修改文件，如需修改请联系管理员。' 
+          : 'Confirm submission? You need to pay the review fee to complete the submission. Once submitted, files cannot be modified. Please contact the administrator if you need to make changes.'),
       confirmText: lang === 'zh' ? '确认提交' : 'Confirm',
       cancelText: lang === 'zh' ? '取消' : 'Cancel',
       onConfirm: () => handleSubmitConfirmed(compId),
@@ -61,7 +70,20 @@ export function usePaperSubmission({
       const response = await api.registration.confirmSubmission(registration.id);
       if (response.success) {
         await loadMyRegistrations();
-        startInvoiceFlow(compId, registration.id);
+        
+        // 检查是否需要跳过支付流程（退回后重新提交的情况）
+        if (response.data?.skipPayment) {
+          setNotification({
+            show: true,
+            title: lang === 'zh' ? '提交成功' : 'Submitted Successfully',
+            message: lang === 'zh' ? '论文已成功提交，无需重复支付评审费。' : 'Paper submitted successfully. No additional payment required.',
+            type: 'success',
+          });
+          onSubmit(compId, registration.paperSubmission?.paperTitle || 'Paper');
+        } else {
+          // 首次提交，需要进入支付流程
+          startInvoiceFlow(compId, registration.id);
+        }
       } else {
         setNotification({
           show: true,

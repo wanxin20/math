@@ -31,7 +31,7 @@ export class UserRegistration {
     type: 'enum',
     enum: RegistrationStatus,
     default: RegistrationStatus.PENDING_SUBMISSION,
-    comment: '报名状态',
+    comment: '报名状态（PENDING_SUBMISSION:待提交, PENDING_PAYMENT:待支付, SUBMITTED:已提交, REVISION_REQUIRED:需要修改-退回, UNDER_REVIEW:评审中, REVIEWED:已评审, AWARDED:已获奖, REJECTED:已拒绝）',
   })
   status: RegistrationStatus;
 

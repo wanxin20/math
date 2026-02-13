@@ -82,13 +82,29 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
           <div className="text-[10px]">{lang === 'zh' ? '报名' : 'Register'}</div>
         </div>
         <div className="text-center flex-1">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-1 ${reg.status !== RegistrationStatus.PENDING_SUBMISSION ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
-            <i className="fas fa-upload text-[10px]"></i>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-1 ${
+            reg.status !== RegistrationStatus.PENDING_SUBMISSION && reg.status !== RegistrationStatus.NOT_STARTED
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100'
+          }`}>
+            <i className={`fas ${reg.status === RegistrationStatus.REVISION_REQUIRED ? 'fa-redo' : 'fa-upload'} text-[10px]`}></i>
           </div>
-          <div className="text-[10px]">{lang === 'zh' ? '上传' : 'Upload'}</div>
+          <div className="text-[10px]">
+            {reg.status === RegistrationStatus.REVISION_REQUIRED 
+              ? (lang === 'zh' ? '修改' : 'Revise')
+              : (lang === 'zh' ? '上传' : 'Upload')
+            }
+          </div>
         </div>
         <div className="text-center flex-1">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-1 ${reg.status === RegistrationStatus.SUBMITTED ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-1 ${
+            reg.status === RegistrationStatus.SUBMITTED || 
+            reg.status === RegistrationStatus.UNDER_REVIEW ||
+            reg.status === RegistrationStatus.REVIEWED ||
+            reg.status === RegistrationStatus.AWARDED
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100'
+          }`}>
             <i className="fas fa-check text-[10px]"></i>
           </div>
           <div className="text-[10px]">{lang === 'zh' ? '完成' : 'Complete'}</div>
@@ -97,8 +113,9 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
 
       {/* 操作区域 */}
       <div className="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
-        {/* 状态1：待提交（PENDING_SUBMISSION） */}
-        {reg.status === RegistrationStatus.PENDING_SUBMISSION && (
+        {/* 状态1：待提交（PENDING_SUBMISSION）或需要修改（REVISION_REQUIRED） */}
+        {(reg.status === RegistrationStatus.PENDING_SUBMISSION || 
+          reg.status === RegistrationStatus.REVISION_REQUIRED) && (
           isPastDeadline ? (
             <div className="text-gray-400 px-6 py-2 text-sm text-center w-full border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
               <i className="fas fa-lock mr-2"></i>
@@ -106,29 +123,47 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
             </div>
           ) : (
             <div className="flex flex-col gap-3 w-full">
-              {/* 显示退回提示（如果论文被退回过） */}
-              {reg.status === RegistrationStatus.PENDING_SUBMISSION && reg.paperSubmission?.submissionFileUrl && (
+              {/* 显示退回提示（仅在 REVISION_REQUIRED 状态时显示） */}
+              {reg.status === RegistrationStatus.REVISION_REQUIRED && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-start gap-2 mb-2">
+                  <div className="flex items-start gap-2 mb-3">
                     <i className="fas fa-exclamation-circle text-red-600 mt-0.5"></i>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-red-800 mb-1">
                         {lang === 'zh' ? '论文已被退回' : 'Paper Rejected'}
                       </p>
                       {reg.rejectionReason && (
-                        <p className="text-sm text-red-700">
+                        <p className="text-sm text-red-700 mb-2">
                           <span className="font-medium">{lang === 'zh' ? '退回原因：' : 'Reason: '}</span>
                           {reg.rejectionReason}
                         </p>
                       )}
+                      {/* 显示支付状态 */}
+                      {reg.payment?.paymentStatus === 'success' && (
+                        <div className="flex items-center gap-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          <i className="fas fa-check-circle"></i>
+                          <span className="font-medium">
+                            {lang === 'zh' ? '支付状态：已支付' : 'Payment Status: Paid'}
+                          </span>
+                          {reg.payment.paymentTime && (
+                            <span className="text-green-600">
+                              ({new Date(reg.payment.paymentTime).toLocaleDateString('zh-CN')})
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <p className="text-xs text-red-600 mt-2">
-                    <i className="fas fa-info-circle mr-1"></i>
-                    {lang === 'zh' 
-                      ? '请修改后重新上传，无需再次缴费。' 
-                      : 'Please revise and resubmit. No additional payment required.'}
-                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                    <p className="text-xs text-blue-800">
+                      <i className="fas fa-info-circle mr-1"></i>
+                      <span className="font-semibold">
+                        {lang === 'zh' 
+                          ? '您已支付过评审费，请修改后重新上传并提交，无需再次缴费。' 
+                          : 'You have already paid the review fee. Please revise and resubmit without additional payment.'}
+                      </span>
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -252,7 +287,10 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                     <i className="fas fa-paper-plane mr-2"></i>
                     {submittingPaper
                       ? (lang === 'zh' ? '提交中...' : 'Submitting...')
-                      : (lang === 'zh' ? '确认提交（需支付评审费）' : 'Confirm Submission (Payment Required)')
+                      : (reg.status === RegistrationStatus.REVISION_REQUIRED
+                        ? (lang === 'zh' ? '确认重新提交（无需再次支付）' : 'Confirm Resubmission (No Payment Required)')
+                        : (lang === 'zh' ? '确认提交（需支付评审费）' : 'Confirm Submission (Payment Required)')
+                      )
                     }
                   </button>
                 </>

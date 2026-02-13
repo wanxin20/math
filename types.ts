@@ -4,6 +4,7 @@ export enum RegistrationStatus {
   PENDING_SUBMISSION = 'PENDING_SUBMISSION', // 待提交（可上传文件暂存）
   PENDING_PAYMENT = 'PENDING_PAYMENT', // 待支付（点击提交后）
   SUBMITTED = 'SUBMITTED', // 已提交（支付成功）
+  REVISION_REQUIRED = 'REVISION_REQUIRED', // 需要修改（管理员退回，已支付，重新提交无需再次支付）
   UNDER_REVIEW = 'UNDER_REVIEW',
   REVIEWED = 'REVIEWED',
   AWARDED = 'AWARDED',

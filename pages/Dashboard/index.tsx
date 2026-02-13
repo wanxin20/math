@@ -125,6 +125,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
       case RegistrationStatus.PENDING_SUBMISSION: return lang === 'zh' ? '待提交' : 'Pending Submission';
       case RegistrationStatus.PENDING_PAYMENT: return lang === 'zh' ? '待支付' : 'Pending Payment';
       case RegistrationStatus.SUBMITTED: return lang === 'zh' ? '已提交' : 'Submitted';
+      case RegistrationStatus.REVISION_REQUIRED: return lang === 'zh' ? '需要修改' : 'Revision Required';
       case RegistrationStatus.UNDER_REVIEW: return lang === 'zh' ? '评审中' : 'Under Review';
       case RegistrationStatus.REVIEWED: return lang === 'zh' ? '已评审' : 'Reviewed';
       case RegistrationStatus.AWARDED: return lang === 'zh' ? '已获奖' : 'Awarded';

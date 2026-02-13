@@ -117,20 +117,26 @@ export class RegistrationsService {
   }
 
   /**
-   * 确认提交（用户上传文件后点击提交按钮，状态从 PENDING_SUBMISSION 变为 PENDING_PAYMENT）
+   * 确认提交（用户上传文件后点击提交按钮）
+   * - PENDING_SUBMISSION -> PENDING_PAYMENT（首次提交，需要支付）
+   * - REVISION_REQUIRED -> SUBMITTED（退回后重新提交，已支付，无需再次支付）
    */
   async confirmSubmission(id: number, userId: string) {
     const registration = await this.registrationsRepository.findOne({
       where: { id, userId },
-      relations: ['paperSubmission'],
+      relations: ['paperSubmission', 'payments'],
     });
 
     if (!registration) {
       throw new NotFoundException('报名记录不存在');
     }
 
-    if (registration.status !== RegistrationStatus.PENDING_SUBMISSION) {
-      throw new BadRequestException('仅待提交状态可以确认提交');
+    // 允许的状态：PENDING_SUBMISSION（首次提交）或 REVISION_REQUIRED（退回后重新提交）
+    if (
+      registration.status !== RegistrationStatus.PENDING_SUBMISSION &&
+      registration.status !== RegistrationStatus.REVISION_REQUIRED
+    ) {
+      throw new BadRequestException('仅待提交状态或需要修改状态可以确认提交');
     }
 
     // 检查是否已上传文件
@@ -138,12 +144,26 @@ export class RegistrationsService {
       throw new BadRequestException('请先上传论文文件');
     }
 
-    // 更新状态为待支付
-    registration.status = RegistrationStatus.PENDING_PAYMENT;
-    await this.registrationsRepository.save(registration);
+    // 检查是否已经有成功的支付记录
+    const hasSuccessfulPayment = registration.payments?.some(
+      payment => payment.paymentStatus === PaymentStatus.SUCCESS
+    );
 
-    this.logger.log(`报名记录 ${id} 已确认提交，进入待支付状态`);
-    return registration;
+    if (hasSuccessfulPayment || registration.status === RegistrationStatus.REVISION_REQUIRED) {
+      // 已支付过或从 REVISION_REQUIRED 状态提交，直接进入已提交状态
+      registration.status = RegistrationStatus.SUBMITTED;
+      // 清除退回原因（重新提交后就不再显示之前的退回原因）
+      registration.rejectionReason = null;
+      await this.registrationsRepository.save(registration);
+      this.logger.log(`报名记录 ${id} 已确认重新提交（无需重复支付），直接进入已提交状态`);
+      return { ...registration, skipPayment: true };
+    } else {
+      // 首次提交，进入待支付状态
+      registration.status = RegistrationStatus.PENDING_PAYMENT;
+      await this.registrationsRepository.save(registration);
+      this.logger.log(`报名记录 ${id} 已确认提交，进入待支付状态`);
+      return { ...registration, skipPayment: false };
+    }
   }
 
   /**
@@ -228,7 +248,7 @@ export class RegistrationsService {
   async rejectSubmission(id: number, reason?: string) {
     const registration = await this.registrationsRepository.findOne({
       where: { id },
-      relations: ['paperSubmission', 'payments'],
+      relations: ['paperSubmission', 'payments', 'user'],
     });
 
     if (!registration) {
@@ -242,21 +262,29 @@ export class RegistrationsService {
 
     // 检查是否已支付（退回不影响支付状态）
     const payment = registration.payments?.[0];
-    if (!payment || payment.paymentStatus !== 'success') {
+    if (!payment || payment.paymentStatus !== PaymentStatus.SUCCESS) {
       throw new BadRequestException('只有已支付的报名记录才能退回');
     }
 
-    // 更新状态为待提交，记录退回原因（如果有）
-    registration.status = RegistrationStatus.PENDING_SUBMISSION;
+    // 更新状态为需要修改（REVISION_REQUIRED），记录退回原因
+    registration.status = RegistrationStatus.REVISION_REQUIRED;
     registration.rejectionReason = reason || null;
     
     await this.registrationsRepository.save(registration);
 
-    this.logger.log(`报名记录 ${id} 已被管理员退回${reason ? `，原因: ${reason}` : ''}`);
+    this.logger.log(
+      `报名记录 ${id} 已被管理员退回，状态更新为 REVISION_REQUIRED。` +
+      `用户: ${registration.user?.name || registration.userId}，` +
+      `竞赛: ${registration.competitionId}，` +
+      `支付状态: ${payment.paymentStatus}，` +
+      `支付时间: ${payment.paymentTime ? new Date(payment.paymentTime).toLocaleString('zh-CN') : '未知'}，` +
+      `退回原因: ${reason || '无'}。` +
+      `用户重新提交时将无需再次支付。`
+    );
     
     return {
       success: true,
-      message: '论文已退回，用户可以重新上传',
+      message: '论文已退回，用户可以重新上传。用户已支付过评审费，重新提交时无需再次支付。',
     };
   }
 
@@ -317,9 +345,15 @@ export class RegistrationsService {
     const sheet = workbook.addWorksheet('报名列表', { headerFooter: { firstHeader: '竞赛报名信息' } });
 
     const statusText: Record<string, string> = {
+      PENDING_SUBMISSION: '待提交',
       PENDING_PAYMENT: '待支付',
       PAID: '已支付',
       SUBMITTED: '已提交',
+      REVISION_REQUIRED: '需要修改',
+      UNDER_REVIEW: '评审中',
+      REVIEWED: '已评审',
+      AWARDED: '已获奖',
+      REJECTED: '已拒绝',
     };
 
     sheet.columns = [
