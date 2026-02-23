@@ -56,10 +56,19 @@ export class PapersService {
       throw new NotFoundException('报名记录不存在');
     }
 
-    // 允许在待提交、待支付和已提交状态下上传文件（暂存）
-    if (registration.status !== RegistrationStatus.PENDING_SUBMISSION &&
-        registration.status !== RegistrationStatus.PENDING_PAYMENT && 
-        registration.status !== RegistrationStatus.SUBMITTED) {
+    // 允许在以下状态下上传文件：
+    // - PENDING_SUBMISSION: 待提交（首次上传）
+    // - PENDING_PAYMENT: 待支付（首次提交后，支付前可修改）
+    // - SUBMITTED: 已提交（仅管理后台可能用到）
+    // - REVISION_REQUIRED: 需要修改（管理员退回后，用户重新上传）
+    const allowedStatuses = [
+      RegistrationStatus.PENDING_SUBMISSION,
+      RegistrationStatus.PENDING_PAYMENT,
+      RegistrationStatus.SUBMITTED,
+      RegistrationStatus.REVISION_REQUIRED,
+    ];
+    
+    if (!allowedStatuses.includes(registration.status)) {
       throw new BadRequestException('当前状态不允许上传文件');
     }
 
