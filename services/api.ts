@@ -15,6 +15,8 @@ function getCurrentSystemFromUrl(): SystemType {
       system = 'reform';
     } else if (hash.startsWith('#/paper')) {
       system = 'paper';
+    } else if (hash.startsWith('#/contest')) {
+      system = 'contest';
     }
   }
   
@@ -36,15 +38,15 @@ function getApiBaseUrl(): string {
   
   // 开发环境：根据系统使用不同端口
   if (import.meta.env.DEV) {
-    return system === 'reform' 
-      ? 'http://localhost:3001/api/v1'
-      : 'http://localhost:3000/api/v1';
+    if (system === 'reform') return 'http://localhost:3001/api/v1';
+    if (system === 'contest') return 'http://localhost:3002/api/v1';
+    return 'http://localhost:3000/api/v1';
   }
   
   // 生产环境：使用相对路径，由Nginx代理
-  // Nginx 会将 /api/paper/ 代理到 http://127.0.0.1:3000/api/v1/
-  // 所以这里不需要包含 /v1
-  return system === 'reform' ? '/api/reform' : '/api/paper';
+  if (system === 'reform') return '/api/reform';
+  if (system === 'contest') return '/api/contest';
+  return '/api/paper';
 }
 
 interface ApiResponse<T = any> {

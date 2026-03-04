@@ -21,9 +21,10 @@ function loadEnvFile(filePath) {
   return envConfig;
 }
 
-// 加载两个系统的环境变量
+// 加载三个系统的环境变量
 const paperEnv = loadEnvFile(path.join(__dirname, '.env.paper'));
 const reformEnv = loadEnvFile(path.join(__dirname, '.env.reform'));
+const contestEnv = loadEnvFile(path.join(__dirname, '.env.contest'));
 
 module.exports = {
   apps: [
@@ -60,6 +61,26 @@ module.exports = {
       },
       error_file: 'logs/reform-error.log',
       out_file: 'logs/reform-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000
+    },
+    {
+      name: 'contest-system',
+      script: 'dist/main.js',
+      instances: 1,
+      exec_mode: 'fork',
+      watch: false,
+      max_memory_restart: '500M',
+      env: {
+        ...contestEnv,
+        NODE_ENV: 'production',
+      },
+      error_file: 'logs/contest-error.log',
+      out_file: 'logs/contest-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: true,
       autorestart: true,

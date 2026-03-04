@@ -38,7 +38,7 @@ const SystemApp: React.FC<SystemAppProps> = ({ system }) => {
     return (saved as Language) || 'zh';
   });
 
-  const basePath = system === 'reform' ? '/reform' : '/paper';
+  const basePath = system === 'reform' ? '/reform' : system === 'contest' ? '/contest' : '/paper';
   const location = useLocation();
 
   // 让后端与 api.ts 使用当前系统

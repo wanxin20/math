@@ -19,7 +19,7 @@ export function SystemProvider({
   const value = useMemo(
     () => ({
       system,
-      basePath: system === 'reform' ? '/reform' : '/paper',
+      basePath: system === 'reform' ? '/reform' : system === 'contest' ? '/contest' : '/paper',
     }),
     [system],
   );

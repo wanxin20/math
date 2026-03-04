@@ -10,6 +10,7 @@ const App: React.FC = () => {
         <Route path="/" element={<SystemSelect />} />
         <Route path="/paper/*" element={<SystemApp system="paper" />} />
         <Route path="/reform/*" element={<SystemApp system="reform" />} />
+        <Route path="/contest/*" element={<SystemApp system="contest" />} />
       </Routes>
     </HashRouter>
   );

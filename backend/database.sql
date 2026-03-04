@@ -24,12 +24,14 @@ CREATE TABLE users (
     phone VARCHAR(20) NOT NULL COMMENT '手机号码',
     avatar_url VARCHAR(500) COMMENT '头像URL',
     status ENUM('active', 'suspended', 'deleted') DEFAULT 'active' COMMENT '账户状态',
+    role ENUM('user', 'admin') DEFAULT 'user' COMMENT '用户角色',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     last_login_at TIMESTAMP NULL COMMENT '最后登录时间',
     INDEX idx_email (email),
     INDEX idx_phone (phone),
-    INDEX idx_institution (institution)
+    INDEX idx_institution (institution),
+    INDEX idx_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- ================================================================
@@ -65,8 +67,8 @@ CREATE TABLE user_registrations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '报名记录ID',
     user_id VARCHAR(36) NOT NULL COMMENT '用户ID',
     competition_id VARCHAR(50) NOT NULL COMMENT '评选项目ID',
-    status ENUM('PENDING_PAYMENT', 'PAID', 'SUBMITTED', 'UNDER_REVIEW', 'REVIEWED', 'AWARDED', 'REJECTED') 
-        DEFAULT 'PENDING_PAYMENT' COMMENT '报名状态',
+    status ENUM('PENDING_SUBMISSION', 'PENDING_PAYMENT', 'PAID', 'SUBMITTED', 'REVISION_REQUIRED', 'UNDER_REVIEW', 'REVIEWED', 'AWARDED', 'REJECTED') 
+        DEFAULT 'PENDING_SUBMISSION' COMMENT '报名状态',
     registration_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
     notes TEXT COMMENT '备注信息',
     need_invoice TINYINT(1) DEFAULT 0 COMMENT '是否需要发票（0否1是）',
@@ -130,6 +132,7 @@ CREATE TABLE paper_submissions (
     submission_file_url VARCHAR(500) NOT NULL COMMENT '提交文件URL',
     submission_file_size BIGINT COMMENT '文件大小（字节）',
     submission_file_type VARCHAR(50) COMMENT '文件类型（pdf/doc/zip）',
+    submission_files JSON NULL COMMENT '多文件列表 [{fileName, fileUrl, size?, mimetype?}]',
     
     -- 提交信息
     submission_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
@@ -502,9 +505,9 @@ AFTER UPDATE ON registration_payments
 FOR EACH ROW
 BEGIN
     IF NEW.payment_status = 'success' AND OLD.payment_status != 'success' THEN
-        -- 更新报名状态为已支付
+        -- 更新报名状态为已提交（支付成功）
         UPDATE user_registrations 
-        SET status = 'PAID' 
+        SET status = 'SUBMITTED' 
         WHERE id = NEW.registration_id AND status = 'PENDING_PAYMENT';
         
         -- 记录支付日志
@@ -689,15 +692,9 @@ DELIMITER ;
 -- 添加日期: 2026-01-14
 -- ================================================================
 
--- 1. 为 users 表添加 role 字段，区分普通用户和管理员
-ALTER TABLE users 
-ADD COLUMN role ENUM('user', 'admin') DEFAULT 'user' COMMENT '用户角色' AFTER status;
+-- 注：role 字段已在 CREATE TABLE users 中定义，无需 ALTER TABLE
 
--- 2. 为 role 字段添加索引
-ALTER TABLE users 
-ADD INDEX idx_role (role);
-
--- 3. 创建默认管理员账号
+-- 1. 创建默认管理员账号
 -- 注意：密码为 'admin123' 经过 bcrypt 加密后的哈希值
 -- 实际使用时请务必修改密码！
 INSERT INTO users (

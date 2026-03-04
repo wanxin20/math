@@ -2,7 +2,7 @@
  * 当前访问的系统标识，用于 API 请求头、localStorage 前缀、主题等。
  * 由路由决定：/paper/* → paper，/reform/* → reform。
  */
-export type SystemType = 'paper' | 'reform';
+export type SystemType = 'paper' | 'reform' | 'contest';
 
 let currentSystem: SystemType = 'paper';
 
@@ -18,6 +18,7 @@ export function setSystem(system: SystemType): void {
 export function getSystemFromPath(pathname: string): SystemType | null {
   if (pathname.startsWith('/reform')) return 'reform';
   if (pathname.startsWith('/paper')) return 'paper';
+  if (pathname.startsWith('/contest')) return 'contest';
   return null;
 }
 
@@ -82,6 +83,26 @@ export const systemConfig: Record<
       template: '论文模板',
       rules: '竞赛章程',
       guide: '指导资料',
+    },
+  },
+  contest: {
+    name: '湾区数学竞赛',
+    nameEn: 'Bay Area Math Contest',
+    navTitle: '深圳市数学学会湾区数学竞赛平台',
+    navTitleEn: 'Shenzhen Mathematics Society Bay Area Math Contest Platform',
+    fontClass: 'font-sans',
+    homeBadge: '湾区数学竞赛报名进行中',
+    homeBadgeEn: 'Bay Area Math Contest Registration Open',
+    heroTitle: '挑战数学极限，展现竞技风采',
+    heroTitleEn: 'Challenge Mathematical Limits, Showcase Competitive Excellence',
+    heroSub: '欢迎来到深圳市数学学会湾区数学竞赛平台。在这里，您可以浏览赛题、组队报名、提交解题方案，参与高水平数学竞赛。',
+    heroSubEn: 'Welcome to the Bay Area Math Contest Platform. Browse problems, form teams, submit solutions, and compete at the highest level.',
+    targetAudience: '数学竞赛参赛者及团队',
+    targetAudienceEn: 'Math Contest Participants & Teams',
+    resourceCategories: {
+      template: '竞赛模板',
+      rules: '竞赛规则',
+      guide: '参考资料',
     },
   },
 };

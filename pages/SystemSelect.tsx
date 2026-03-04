@@ -15,7 +15,7 @@ const SystemSelect: React.FC = () => {
         </h1>
         <p className="text-gray-500 font-medium">请选择您要使用的平台</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full">
         <Link
           to="/paper"
           className="group block bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-gray-100 hover:shadow-2xl hover:border-indigo-200 transition-all duration-300 text-left"
@@ -53,9 +53,28 @@ const SystemSelect: React.FC = () => {
             <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
           </span>
         </Link>
+
+        <Link
+          to="/contest"
+          className="group block bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-gray-100 hover:shadow-2xl hover:border-amber-200 transition-all duration-300 text-left"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-amber-500 flex items-center justify-center text-white text-2xl mb-6 group-hover:scale-110 transition-transform">
+            <i className="fas fa-trophy"></i>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {systemConfig.contest.name}
+          </h2>
+          <p className="text-gray-500 text-sm mb-6">
+            湾区数学竞赛报名、赛题浏览与解题方案提交
+          </p>
+          <span className="text-amber-600 font-semibold inline-flex items-center gap-2">
+            进入系统
+            <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+          </span>
+        </Link>
       </div>
       <p className="mt-12 text-sm text-gray-400">
-        两套系统数据与账号独立，请分别登录使用
+        三套系统数据与账号独立，请分别登录使用
       </p>
     </div>
   );
