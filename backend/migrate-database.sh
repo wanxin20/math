@@ -15,6 +15,24 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # ================================================================
+# 数据库连接配置
+# ================================================================
+# 源数据库（导出来源，请根据实际情况修改）
+SOURCE_HOST="dbconn.sealosgzg.site"
+SOURCE_PORT="36594"
+SOURCE_USER="root"
+SOURCE_PASSWORD="7d8k64zs"
+SOURCE_DATABASE="teacher_research_platform"
+
+# 目标数据库（导入目标）
+TARGET_HOST="dbconn.sealosgzg.site"
+TARGET_PORT="41234"
+TARGET_USER="root"
+TARGET_PASSWORD="dzvfb5n4"
+TARGET_DATABASE="teacher_research_platform"
+
+# 是否仅复制结构（不复制数据），设为 true 则只导出表结构、存储过程、触发器、事件
+SCHEMA_ONLY=false
 
 # ================================================================
 # 备份配置
@@ -117,6 +135,7 @@ echo "    - 用户: ${TARGET_USER}"
 echo "    - 数据库: ${TARGET_DATABASE}"
 echo ""
 echo "  备份文件: ${BACKUP_FILE}"
+echo "  模式: $([ "${SCHEMA_ONLY}" = "true" ] && echo "仅结构（不含数据）" || echo "结构+数据")"
 echo ""
 print_warning "⚠️  警告：目标数据库中的现有数据将被覆盖！"
 echo ""
@@ -130,8 +149,15 @@ fi
 echo ""
 
 # 5. 从源数据库导出数据
-print_info "正在从源数据库导出数据..."
-print_info "这可能需要几分钟，请耐心等待..."
+if [ "${SCHEMA_ONLY}" = "true" ]; then
+    print_info "正在从源数据库导出结构（仅结构，不含数据）..."
+else
+    print_info "正在从源数据库导出数据..."
+    print_info "这可能需要几分钟，请耐心等待..."
+fi
+
+MYSQLDUMP_EXTRA=""
+[ "${SCHEMA_ONLY}" = "true" ] && MYSQLDUMP_EXTRA="--no-data"
 
 mysqldump \
     -h"${SOURCE_HOST}" \
@@ -145,6 +171,7 @@ mysqldump \
     --routines \
     --triggers \
     --events \
+    ${MYSQLDUMP_EXTRA} \
     "${SOURCE_DATABASE}" > "${TEMP_FILE}"
 
 if [ $? -eq 0 ]; then
