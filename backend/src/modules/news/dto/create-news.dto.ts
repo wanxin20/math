@@ -37,4 +37,14 @@ export class CreateNewsDto {
   @IsString()
   @IsOptional()
   publishDate?: string;
+
+  @ApiPropertyOptional({ description: '附件URL（Word文档等）' })
+  @IsString()
+  @IsOptional()
+  attachmentUrl?: string;
+
+  @ApiPropertyOptional({ description: '附件原始文件名' })
+  @IsString()
+  @IsOptional()
+  attachmentName?: string;
 }

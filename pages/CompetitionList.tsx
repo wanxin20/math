@@ -220,6 +220,18 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ user, onRegister, has
                 </div>
               </div>
               <div className="flex flex-col justify-center items-center gap-3 w-full md:w-48">
+                {/* 赛题附件下载 */}
+                {comp.problemAttachmentUrl && (
+                  <a
+                    href={comp.problemAttachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:border-indigo-400 transition font-semibold text-sm"
+                  >
+                    <i className="fas fa-file-alt text-indigo-500"></i>
+                    {lang === 'zh' ? '查看赛题' : 'View Problems'}
+                  </a>
+                )}
                 {/* 优先判断是否已截止 */}
                 {isPastDeadline ? (
                   <div className="w-full bg-gray-100 text-gray-500 px-4 py-3 rounded-xl text-sm font-bold text-center border border-gray-200 cursor-not-allowed">

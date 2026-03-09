@@ -52,6 +52,8 @@ CREATE TABLE competitions (
     cover_image_url VARCHAR(500) COMMENT '封面图片URL',
     guidelines TEXT COMMENT '申报指南/竞赛规则',
     award_info TEXT COMMENT '奖项设置说明',
+    problem_attachment_url VARCHAR(1000) COMMENT '赛题附件URL（Word/PDF等）',
+    problem_attachment_name VARCHAR(300) COMMENT '赛题附件原始文件名',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_category (category),
@@ -247,6 +249,8 @@ CREATE TABLE news_announcements (
     publish_date DATE COMMENT '发布日期',
     view_count INT DEFAULT 0 COMMENT '浏览次数',
     author_id VARCHAR(36) COMMENT '发布者ID',
+    attachment_url VARCHAR(1000) COMMENT '附件URL（Word/PDF等）',
+    attachment_name VARCHAR(300) COMMENT '附件原始文件名',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_publish_date (publish_date),
@@ -799,3 +803,19 @@ INSERT INTO users (
 3. 可以增加批量操作功能（批量导入用户、批量删除等）
 4. 可以添加数据统计和可视化功能
 */
+
+-- ================================================================
+-- 数据库迁移记录
+-- ================================================================
+
+-- [Migration 2026-03-09] news_announcements 表新增附件字段
+-- 支持公告关联 Word/PDF 附件，前端管理员可上传，用户在首页公告弹窗中打开/下载
+ALTER TABLE news_announcements
+    ADD COLUMN attachment_url  VARCHAR(1000) DEFAULT NULL COMMENT '附件URL（Word/PDF等）' AFTER author_id,
+    ADD COLUMN attachment_name VARCHAR(300)  DEFAULT NULL COMMENT '附件原始文件名'         AFTER attachment_url;
+
+-- [Migration 2026-03-09] competitions 表新增赛题附件字段
+-- 支持竞赛赛题 Word/PDF 附件，管理员在竞赛编辑页上传，用户在竞赛中心卡片"查看赛题"按钮打开
+ALTER TABLE competitions
+    ADD COLUMN problem_attachment_url  VARCHAR(1000) DEFAULT NULL COMMENT '赛题附件URL（Word/PDF等）' AFTER award_info,
+    ADD COLUMN problem_attachment_name VARCHAR(300)  DEFAULT NULL COMMENT '赛题附件原始文件名'         AFTER problem_attachment_url;

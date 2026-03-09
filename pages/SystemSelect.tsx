@@ -65,7 +65,7 @@ const SystemSelect: React.FC = () => {
             {systemConfig.contest.name}
           </h2>
           <p className="text-gray-500 text-sm mb-6">
-            湾区数学竞赛报名、赛题浏览与解题方案提交
+            湾区数学与智能+科技创新竞赛
           </p>
           <span className="text-amber-600 font-semibold inline-flex items-center gap-2">
             进入系统

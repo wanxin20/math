@@ -18,6 +18,8 @@ interface NewsItem {
   publishDate: string;
   isPublished: boolean;
   viewCount: number;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 const Home: React.FC<HomeProps> = ({ lang }) => {
@@ -331,6 +333,34 @@ const Home: React.FC<HomeProps> = ({ lang }) => {
                   dangerouslySetInnerHTML={{ __html: selectedNews.content }}
                 />
               </div>
+
+              {/* Attachment */}
+              {selectedNews.attachmentUrl && (
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+                    {lang === 'zh' ? '附件' : 'Attachment'}
+                  </p>
+                  <a
+                    href={selectedNews.attachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-3 px-5 py-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl transition group"
+                  >
+                    <span className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+                      <i className="fas fa-file-word text-white text-sm"></i>
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold text-indigo-700 truncate">
+                        {selectedNews.attachmentName || (lang === 'zh' ? '下载附件' : 'Download Attachment')}
+                      </span>
+                      <span className="block text-xs text-indigo-400">
+                        {lang === 'zh' ? '点击打开' : 'Click to open'}
+                      </span>
+                    </span>
+                    <i className="fas fa-external-link-alt text-indigo-400 text-xs group-hover:text-indigo-600 transition"></i>
+                  </a>
+                </div>
+              )}
             </div>
 
             

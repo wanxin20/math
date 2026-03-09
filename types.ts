@@ -18,6 +18,9 @@ export interface Competition {
   fee: number;
   deadline: string;
   category: string;
+  coverImageUrl?: string;
+  problemAttachmentUrl?: string;
+  problemAttachmentName?: string;
 }
 
 export interface User {

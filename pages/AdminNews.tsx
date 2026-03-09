@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { newsApi } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { newsApi, uploadApi } from '../services/api';
 
 interface News {
   id: number;
@@ -12,6 +12,8 @@ interface News {
   publishDate?: string;
   viewCount: number;
   authorId?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +26,9 @@ const AdminNews: React.FC = () => {
   const [search, setSearch] = useState('');
   const [editingNews, setEditingNews] = useState<Partial<News> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const emptyNews: Partial<News> = {
     title: '',
@@ -83,7 +88,38 @@ const AdminNews: React.FC = () => {
     priority: n.priority,
     isPublished: n.isPublished,
     publishDate: n.publishDate,
+    attachmentUrl: n.attachmentUrl || undefined,
+    attachmentName: n.attachmentName || undefined,
   });
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingNews) return;
+    const allowed = [
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/pdf',
+    ];
+    if (!allowed.includes(file.type) && !file.name.match(/\.(doc|docx|pdf)$/i)) {
+      setUploadError('仅支持 Word（.doc/.docx）或 PDF 文件');
+      return;
+    }
+    setUploadError(null);
+    setUploadProgress(0);
+    const res = await uploadApi.uploadFile(file, (pct) => setUploadProgress(pct));
+    setUploadProgress(null);
+    if (res.success && res.data?.url) {
+      setEditingNews({ ...editingNews, attachmentUrl: res.data.url, attachmentName: file.name });
+    } else {
+      setUploadError(res.message || '上传失败，请重试');
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRemoveAttachment = () => {
+    if (!editingNews) return;
+    setEditingNews({ ...editingNews, attachmentUrl: undefined, attachmentName: undefined });
+  };
 
   const handleSave = async () => {
     if (!editingNews) return;
@@ -552,6 +588,83 @@ const AdminNews: React.FC = () => {
                     fontFamily: 'inherit',
                   }}
                 />
+              </div>
+
+              {/* 附件上传 */}
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  附件（Word / PDF，可选）
+                </label>
+                {editingNews.attachmentUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', border: '1px solid #d1fae5', borderRadius: '12px', backgroundColor: '#f0fdf4' }}>
+                    <i className="fas fa-file-word" style={{ color: '#059669', fontSize: '20px' }}></i>
+                    <span style={{ flex: 1, fontSize: '14px', color: '#065f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {editingNews.attachmentName || '附件'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveAttachment}
+                      style={{ padding: '4px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}
+                    >
+                      移除
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".doc,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+                      onChange={handleAttachmentUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadProgress !== null}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px dashed #e5e7eb',
+                        borderRadius: '12px',
+                        backgroundColor: '#f9fafb',
+                        color: '#6b7280',
+                        fontSize: '14px',
+                        cursor: uploadProgress !== null ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => { if (uploadProgress === null) { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#4f46e5'; } }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#6b7280'; }}
+                    >
+                      {uploadProgress !== null ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin"></i>
+                          上传中 {uploadProgress}%
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-cloud-upload-alt"></i>
+                          点击上传 Word 或 PDF 附件
+                        </>
+                      )}
+                    </button>
+                    {uploadProgress !== null && (
+                      <div style={{ marginTop: '8px', height: '4px', backgroundColor: '#e5e7eb', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${uploadProgress}%`, backgroundColor: '#4f46e5', borderRadius: '2px', transition: 'width 0.3s' }}></div>
+                      </div>
+                    )}
+                    {uploadError && (
+                      <p style={{ marginTop: '6px', fontSize: '12px', color: '#dc2626' }}>
+                        <i className="fas fa-exclamation-circle" style={{ marginRight: '4px' }}></i>
+                        {uploadError}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 发布日期和状态 */}

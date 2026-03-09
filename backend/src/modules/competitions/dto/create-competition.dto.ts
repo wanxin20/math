@@ -50,4 +50,14 @@ export class CreateCompetitionDto {
   @IsString()
   @IsOptional()
   awardInfo?: string;
+
+  @ApiPropertyOptional({ description: '赛题附件URL（Word/PDF等）' })
+  @IsString()
+  @IsOptional()
+  problemAttachmentUrl?: string;
+
+  @ApiPropertyOptional({ description: '赛题附件原始文件名' })
+  @IsString()
+  @IsOptional()
+  problemAttachmentName?: string;
 }

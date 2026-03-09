@@ -52,6 +52,12 @@ export class Competition {
   @Column({ name: 'award_info', type: 'text', nullable: true, comment: '奖项设置说明' })
   awardInfo: string;
 
+  @Column({ name: 'problem_attachment_url', length: 1000, nullable: true, comment: '赛题附件URL' })
+  problemAttachmentUrl: string;
+
+  @Column({ name: 'problem_attachment_name', length: 300, nullable: true, comment: '赛题附件原始文件名' })
+  problemAttachmentName: string;
+
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 

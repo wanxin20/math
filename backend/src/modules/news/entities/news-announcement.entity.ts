@@ -55,6 +55,12 @@ export class NewsAnnouncement {
   @Column({ name: 'author_id', length: 36, nullable: true, comment: '发布者ID' })
   authorId: string;
 
+  @Column({ name: 'attachment_url', length: 1000, nullable: true, comment: '附件URL' })
+  attachmentUrl: string;
+
+  @Column({ name: 'attachment_name', length: 300, nullable: true, comment: '附件原始文件名' })
+  attachmentName: string;
+
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { competitionApi, uploadApi } from '../services/api';
 import { useSystem } from '../contexts/SystemContext';
@@ -17,6 +17,8 @@ interface Competition {
   coverImageUrl?: string;
   guidelines?: string;
   awardInfo?: string;
+  problemAttachmentUrl?: string;
+  problemAttachmentName?: string;
   createdAt: string;
 }
 
@@ -31,6 +33,10 @@ const AdminCompetitions: React.FC = () => {
   const [editingCompetition, setEditingCompetition] = useState<Partial<Competition> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [attachmentUploading, setAttachmentUploading] = useState(false);
+  const [attachmentUploadProgress, setAttachmentUploadProgress] = useState<number | null>(null);
+  const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const emptyCompetition: Partial<Competition> = {
     title: '',
@@ -134,6 +140,37 @@ const AdminCompetitions: React.FC = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingCompetition) return;
+    const allowed = [
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/pdf',
+    ];
+    if (!allowed.includes(file.type) && !file.name.match(/\.(doc|docx|pdf)$/i)) {
+      setAttachmentUploadError('仅支持 Word（.doc/.docx）或 PDF 文件');
+      return;
+    }
+    setAttachmentUploadError(null);
+    setAttachmentUploading(true);
+    setAttachmentUploadProgress(0);
+    const res = await uploadApi.uploadFile(file, (pct) => setAttachmentUploadProgress(pct));
+    setAttachmentUploading(false);
+    setAttachmentUploadProgress(null);
+    if (res.success && res.data?.url) {
+      setEditingCompetition({ ...editingCompetition, problemAttachmentUrl: res.data.url, problemAttachmentName: file.name });
+    } else {
+      setAttachmentUploadError(res.message || '上传失败，请重试');
+    }
+    if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+  };
+
+  const handleRemoveAttachment = () => {
+    if (!editingCompetition) return;
+    setEditingCompetition({ ...editingCompetition, problemAttachmentUrl: undefined, problemAttachmentName: undefined });
   };
 
   const handleSave = async () => {
@@ -834,6 +871,94 @@ const AdminCompetitions: React.FC = () => {
                     onFocus={(e) => e.target.style.borderColor = '#667eea'}
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   />
+                </div>
+
+                {/* 赛题附件 */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}>
+                    赛题附件
+                    <span style={{ color: '#9ca3af', fontWeight: '400', fontSize: '12px', marginLeft: '8px' }}>(可选，Word / PDF)</span>
+                  </label>
+                  {editingCompetition.problemAttachmentUrl ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: '2px solid #d1fae5', borderRadius: '8px', backgroundColor: '#f0fdf4' }}>
+                      <i className="fas fa-file-word" style={{ color: '#059669', fontSize: '22px', flexShrink: 0 }}></i>
+                      <span style={{ flex: 1, fontSize: '14px', color: '#065f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {editingCompetition.problemAttachmentName || '附件'}
+                      </span>
+                      <a
+                        href={editingCompetition.problemAttachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ padding: '4px 12px', backgroundColor: '#d1fae5', color: '#065f46', borderRadius: '6px', fontSize: '13px', fontWeight: '500', textDecoration: 'none' }}
+                      >
+                        预览
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleRemoveAttachment}
+                        style={{ padding: '4px 12px', backgroundColor: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                      >
+                        移除
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        ref={attachmentInputRef}
+                        type="file"
+                        accept=".doc,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+                        onChange={handleAttachmentUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <div
+                        style={{
+                          border: '2px dashed #e5e7eb',
+                          borderRadius: '8px',
+                          padding: '24px',
+                          textAlign: 'center',
+                          backgroundColor: '#f9fafb',
+                          cursor: attachmentUploading ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.3s',
+                        }}
+                        onClick={() => !attachmentUploading && attachmentInputRef.current?.click()}
+                        onMouseEnter={(e) => { if (!attachmentUploading) e.currentTarget.style.borderColor = '#667eea'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                      >
+                        {attachmentUploading ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin" style={{ fontSize: '24px', color: '#667eea', marginBottom: '8px' }}></i>
+                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0' }}>
+                              上传中 {attachmentUploadProgress !== null ? `${attachmentUploadProgress}%` : ''}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-cloud-upload-alt" style={{ fontSize: '28px', color: '#9ca3af', marginBottom: '8px' }}></i>
+                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0' }}>
+                              点击上传赛题附件（Word / PDF）
+                            </p>
+                          </>
+                        )}
+                        {attachmentUploadProgress !== null && !attachmentUploading === false && (
+                          <div style={{ marginTop: '10px', height: '4px', backgroundColor: '#e5e7eb', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${attachmentUploadProgress}%`, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '2px', transition: 'width 0.3s' }}></div>
+                          </div>
+                        )}
+                      </div>
+                      {attachmentUploadError && (
+                        <p style={{ marginTop: '6px', fontSize: '12px', color: '#dc2626' }}>
+                          <i className="fas fa-exclamation-circle" style={{ marginRight: '4px' }}></i>
+                          {attachmentUploadError}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
