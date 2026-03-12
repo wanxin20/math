@@ -95,9 +95,6 @@ export class PapersService {
       this.logger.log(`用户 ${userId} 首次提交论文: ${paperData.paperTitle}`);
     }
 
-    // 3. 文件上传后不自动改变状态（保持暂存状态）
-    // 只有在支付成功后才会变为 SUBMITTED 状态
-
     return savedPaper;
   }
 

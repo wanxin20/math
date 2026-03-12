@@ -524,25 +524,12 @@ BEGIN
 END //
 DELIMITER ;
 
--- 创建论文提交后自动更新报名状态的触发器
-DELIMITER //
-CREATE TRIGGER tr_after_paper_submission
-AFTER INSERT ON paper_submissions
-FOR EACH ROW
-BEGIN
-    -- 更新报名状态为已提交
-    UPDATE user_registrations 
-    SET status = 'SUBMITTED' 
-    WHERE id = NEW.registration_id;
-    
-    -- 记录提交日志
-    INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details)
-    SELECT ur.user_id, 'paper_submitted', 'registration', NEW.registration_id,
-           JSON_OBJECT('competition_id', ur.competition_id, 'paper_title', NEW.paper_title, 'file_name', NEW.submission_file_name)
-    FROM user_registrations ur
-    WHERE ur.id = NEW.registration_id;
-END //
-DELIMITER ;
+-- 注意：tr_after_paper_submission 触发器已移除。
+-- 原因：论文提交接口（POST /papers）仅用于暂存文件，不应直接将状态改为 SUBMITTED。
+-- 正确的状态流转由应用层控制：
+--   1. 上传文件（POST /papers）     → 状态保持 PENDING_SUBMISSION
+--   2. 确认提交（confirm-submission）→ 状态变为 PENDING_PAYMENT
+--   3. 支付成功（tr_after_payment_success 触发器）→ 状态变为 SUBMITTED
 
 -- 创建评审完成后自动更新报名状态的触发器
 DELIMITER //

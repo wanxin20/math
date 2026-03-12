@@ -95,6 +95,11 @@ export class RegistrationsService {
       order: { registrationTime: 'DESC' },
     });
 
+    this.logger.log(`[DEBUG] findUserRegistrations userId=${userId} 共 ${registrations.length} 条记录:`);
+    registrations.forEach(reg => {
+      this.logger.log(`[DEBUG]   id=${reg.id} competitionId=${reg.competitionId} status=${reg.status} hasPaper=${!!reg.paperSubmission}`);
+    });
+
     return registrations.map((reg) => ({
       id: reg.id,
       competitionId: reg.competitionId,
@@ -122,6 +127,7 @@ export class RegistrationsService {
    * - REVISION_REQUIRED -> SUBMITTED（退回后重新提交，已支付，无需再次支付）
    */
   async confirmSubmission(id: number, userId: string) {
+    this.logger.log(`[DEBUG] confirmSubmission 被调用: registrationId=${id} userId=${userId}`);
     const registration = await this.registrationsRepository.findOne({
       where: { id, userId },
       relations: ['paperSubmission', 'payments'],
