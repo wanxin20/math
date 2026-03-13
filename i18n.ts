@@ -21,7 +21,7 @@ export const translations = {
       heroSub: '欢迎来到深圳市数学学会论文评选服务平台。在这里，您可以提交数学论文，参与高水平论文评选。',
       ctaRegister: '立即参加评选',
       ctaGuide: '撰写与提交指南',
-      popular: '论文类型',
+      popular: '竞赛中心',
       viewAll: '查看全部项目',
       process: '评选流程',
       newsTitle: '通知公告',

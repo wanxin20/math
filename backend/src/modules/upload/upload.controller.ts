@@ -93,12 +93,16 @@ export class UploadController {
           // PowerPoint 演示文稿
           'application/vnd.ms-powerpoint',
           'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          // 压缩包
+          // 压缩包（各浏览器/系统的 MIME 类型有差异，全部列出）
           'application/zip',
+          'application/x-zip',
           'application/x-zip-compressed',
           'application/x-rar-compressed',
+          'application/vnd.rar',      // RAR5 标准 MIME
+          'application/x-rar',
           'application/x-7z-compressed',
           'application/gzip',
+          'application/x-gzip',
           'application/x-tar',
           // 文本文件
           'text/plain',
@@ -123,10 +127,20 @@ export class UploadController {
           'text/xml',
         ];
 
-        if (allowedTypes.includes(file.mimetype)) {
+        const allowedExtensions = [
+          '.zip', '.rar', '.7z', '.gz', '.tar',
+          '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+          '.txt', '.md', '.rtf', '.csv',
+          '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg',
+          '.mp4', '.mov', '.avi', '.mpeg',
+          '.json', '.xml',
+        ];
+        const ext = extname(file.originalname).toLowerCase();
+
+        if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
           cb(null, true);
         } else {
-          cb(new BadRequestException(`不支持的文件类型: ${file.mimetype}`), false);
+          cb(new BadRequestException(`不支持的文件类型: ${file.mimetype}（${ext}）`), false);
         }
       },
     }),

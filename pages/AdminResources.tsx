@@ -597,6 +597,7 @@ const AdminResources: React.FC = () => {
                     <input
                       type="file"
                       id="file-upload"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.gz,.tar,.txt,.md,.csv,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov"
                       onChange={handleFileUpload}
                       style={{ display: 'none' }}
                       disabled={uploading}
