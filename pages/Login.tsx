@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { Language, translations } from '../i18n';
 import api from '../services/api';
+import GradeSelect from '../components/GradeSelect';
 import { getSystem } from '../store/system';
 
 interface LoginProps {
@@ -24,6 +25,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const lt = translations[lang].login;
 
   // 验证密码强度
@@ -45,6 +47,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
     email: '',
     institution: '',
     title: '',
+    grade: '',
     phone: '',
     password: ''
   });
@@ -145,10 +148,58 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
     }
   };
 
+  // 客户端表单校验
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (isLogin) {
+      if (!formData.email) {
+        errors.email = lang === 'zh' ? '请输入邮箱地址' : 'Please enter email';
+      }
+      if (!formData.password) {
+        errors.password = lang === 'zh' ? '请输入密码' : 'Please enter password';
+      }
+    } else {
+      if (!formData.name || formData.name.trim().length < 2) {
+        errors.name = lang === 'zh' ? '姓名至少2个字符' : 'Name must be at least 2 characters';
+      }
+      if (!formData.institution || formData.institution.trim().length === 0) {
+        errors.institution = lang === 'zh' ? '请填写所属单位' : 'Please enter your institution';
+      }
+      if (!formData.title || formData.title.trim().length === 0) {
+        errors.title = lang === 'zh' ? '请填写职称/职务' : 'Please enter your title';
+      }
+      if (!formData.phone || !/^1[3-9]\d{9}$/.test(formData.phone)) {
+        errors.phone = lang === 'zh' ? '请输入正确的11位手机号' : 'Please enter a valid 11-digit phone number';
+      }
+      if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        errors.email = lang === 'zh' ? '请输入正确的邮箱格式' : 'Please enter a valid email';
+      }
+      if (!validatePasswordStrength(formData.password)) {
+        errors.password = lt.passwordWeak;
+      }
+      if (formData.password !== confirmPassword) {
+        errors.confirmPassword = lt.passwordMismatch;
+      }
+      if (!verificationCode) {
+        errors.verificationCode = lang === 'zh' ? '请输入验证码' : 'Please enter verification code';
+      }
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setFieldErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
 
     try {
       if (isLogin) {
@@ -166,27 +217,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
         }
       } else {
         // 注册 - 需要验证码
-        // 验证密码强度
-        if (!validatePasswordStrength(formData.password)) {
-          setError(lt.passwordWeak);
-          setLoading(false);
-          return;
-        }
-
-        // 验证密码是否一致
-        if (formData.password !== confirmPassword) {
-          setError(lt.passwordMismatch);
-          setLoading(false);
-          return;
-        }
-
-        // 验证邮箱验证码
-        if (!verificationCode) {
-          setError(lang === 'zh' ? '请输入验证码' : 'Please enter verification code');
-          setLoading(false);
-          return;
-        }
-
         const verifyResponse = await api.auth.verifyCode(formData.email, verificationCode);
         if (!verifyResponse.success) {
           setError(verifyResponse.message || (lang === 'zh' ? '验证码错误' : 'Invalid verification code'));
@@ -201,6 +231,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
           password: formData.password,
           institution: formData.institution,
           title: formData.title,
+          grade: formData.grade || undefined,
           phone: formData.phone,
         });
         if (response.success) {
@@ -216,6 +247,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
             email: '',
             institution: '',
             title: '',
+            grade: '',
             phone: '',
             password: ''
           });
@@ -380,48 +412,62 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.name}</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); setFieldErrors(prev => ({...prev, name: ''})); }}
+                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.name ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder={lt.namePlaceholder}
                   />
+                  {fieldErrors.name && <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.name}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.institution}</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     value={formData.institution}
-                    onChange={(e) => setFormData({...formData, institution: e.target.value})}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+                    onChange={(e) => { setFormData({...formData, institution: e.target.value}); setFieldErrors(prev => ({...prev, institution: ''})); }}
+                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.institution ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder={lt.instPlaceholder}
                   />
+                  {fieldErrors.institution && <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.institution}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.title}</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+                    onChange={(e) => { setFormData({...formData, title: e.target.value}); setFieldErrors(prev => ({...prev, title: ''})); }}
+                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.title ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder={lt.titlePlaceholder}
+                  />
+                  {fieldErrors.title && <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.title}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.grade} <span className="text-gray-400 normal-case font-normal">({lang === 'zh' ? '选填' : 'Optional'})</span></label>
+                  <GradeSelect
+                    value={formData.grade}
+                    onChange={(val) => setFormData({...formData, grade: val})}
+                    lang={lang}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm"
+                    placeholder={lt.gradePlaceholder}
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.phone}</label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     required
                     pattern="[0-9]{11}"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+                    onChange={(e) => { setFormData({...formData, phone: e.target.value}); setFieldErrors(prev => ({...prev, phone: ''})); }}
+                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.phone ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder={lt.phonePlaceholder}
                   />
+                  {fieldErrors.phone && <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.phone}</p>}
                 </div>
               </div>
             </>
@@ -429,25 +475,26 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
           
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.email}</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               required
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+              onChange={(e) => { setFormData({...formData, email: e.target.value}); setFieldErrors(prev => ({...prev, email: ''})); }}
+              className={`w-full bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.email ? 'border-red-400' : 'border-gray-200'}`}
               placeholder={lt.emailPlaceholder}
             />
+            {fieldErrors.email && <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.email}</p>}
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.password}</label>
             <div className="relative">
-              <input 
+              <input
                 type={showPassword ? "text" : "password"}
                 required
                 value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+                onChange={(e) => { setFormData({...formData, password: e.target.value}); setFieldErrors(prev => ({...prev, password: ''})); }}
+                className={`w-full bg-gray-50 border rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.password ? 'border-red-400' : 'border-gray-200'}`}
                 placeholder="••••••••"
               />
               <button
@@ -458,7 +505,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
                 <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
               </button>
             </div>
-            {!isLogin && <p className="text-xs text-gray-500 mt-1 ml-1">{lt.passwordRequirement}</p>}
+            {fieldErrors.password ? <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.password}</p> : (!isLogin && <p className="text-xs text-gray-500 mt-1 ml-1">{lt.passwordRequirement}</p>)}
           </div>
 
           {!isLogin && (
@@ -466,12 +513,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.confirmPassword}</label>
                 <div className="relative">
-                  <input 
+                  <input
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+                    onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(prev => ({...prev, confirmPassword: ''})); }}
+                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.confirmPassword ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder={lt.confirmPasswordPlaceholder}
                   />
                   <button
@@ -482,18 +529,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
                     <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                   </button>
                 </div>
+                {fieldErrors.confirmPassword && <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.confirmPassword}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">{lt.verificationCode}</label>
                 <div className="flex gap-2">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
+                    onChange={(e) => { setVerificationCode(e.target.value); setFieldErrors(prev => ({...prev, verificationCode: ''})); }}
                     maxLength={6}
-                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" 
+                    className={`flex-1 bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm ${fieldErrors.verificationCode ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder={lt.verificationCodePlaceholder}
                   />
                   <button
@@ -505,11 +553,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, lang }) => {
                     {sendingCode ? (lang === 'zh' ? '发送中...' : 'Sending...') : countdown > 0 ? `${countdown}s` : codeSent ? lt.resendCode : lt.sendCode}
                   </button>
                 </div>
+                {fieldErrors.verificationCode && <p className="text-red-500 text-xs mt-1 ml-1">{fieldErrors.verificationCode}</p>}
               </div>
             </>
           )}
-          
-          <button 
+
+          <button
             type="submit"
             disabled={loading}
             className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition text-lg mt-4"

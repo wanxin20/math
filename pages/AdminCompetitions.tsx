@@ -636,7 +636,7 @@ const AdminCompetitions: React.FC = () => {
                     color: '#374151',
                     fontSize: '14px'
                   }}>
-                    评审费用 (元) <span style={{ color: '#ef4444' }}>*</span>
+                    报名费用 (元) <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="number"

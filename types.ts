@@ -29,6 +29,7 @@ export interface User {
   email: string;
   institution: string;
   title: string;
+  grade?: string;
   phone: string;
   role?: 'user' | 'admin';
 }

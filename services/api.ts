@@ -62,6 +62,15 @@ function getTokenKey(): string {
   return `${system}_token`;
 }
 
+/** XHR 请求遇到 401 时的统一处理 */
+function handleXhr401() {
+  const system = getCurrentSystemFromUrl();
+  localStorage.removeItem(`${system}_token`);
+  localStorage.removeItem(`${system}_user`);
+  localStorage.removeItem(`${system}_registrations`);
+  window.dispatchEvent(new CustomEvent('auth:expired', { detail: { system } }));
+}
+
 // 统一的请求封装
 async function request<T = any>(
   endpoint: string,
@@ -90,7 +99,22 @@ async function request<T = any>(
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || '请求失败');
+      // Token 过期或无效，触发重新登录
+      if (response.status === 401) {
+        const system = getCurrentSystemFromUrl();
+        localStorage.removeItem(`${system}_token`);
+        localStorage.removeItem(`${system}_user`);
+        localStorage.removeItem(`${system}_registrations`);
+        window.dispatchEvent(new CustomEvent('auth:expired', { detail: { system } }));
+        return {
+          success: false,
+          message: '登录已过期，请重新登录',
+          code: 401,
+        };
+      }
+      // ValidationPipe 可能返回 message 数组，拼成换行展示
+      const msg = Array.isArray(data.message) ? data.message.join('；') : (data.message || '请求失败');
+      throw new Error(msg);
     }
 
     return {
@@ -124,6 +148,7 @@ export const authApi = {
     password: string;
     institution: string;
     title: string;
+    grade?: string;
     phone: string;
   }) => {
     return request('/auth/register', {
@@ -265,6 +290,10 @@ export const registrationApi = {
         method: 'GET',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      if (response.status === 401) {
+        handleXhr401();
+        return { success: false, message: '登录已过期，请重新登录' };
+      }
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         return { success: false, message: data.message || '导出失败' };
@@ -412,8 +441,13 @@ export const paperApi = {
       // 监听完成
       xhr.addEventListener('load', () => {
         try {
+          if (xhr.status === 401) {
+            handleXhr401();
+            resolve({ success: false, message: '登录已过期，请重新登录', code: 401 });
+            return;
+          }
           const data = JSON.parse(xhr.responseText);
-          
+
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve({
               success: true,
@@ -682,8 +716,13 @@ export const uploadApi = {
       // 监听完成
       xhr.addEventListener('load', () => {
         try {
+          if (xhr.status === 401) {
+            handleXhr401();
+            resolve({ success: false, message: '登录已过期，请重新登录', code: 401 });
+            return;
+          }
           const result = JSON.parse(xhr.responseText);
-          
+
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve({
               success: true,
@@ -746,6 +785,11 @@ export const uploadApi = {
       });
 
       const result = await response.json();
+
+      if (response.status === 401) {
+        handleXhr401();
+        return { success: false, message: '登录已过期，请重新登录', code: 401 };
+      }
 
       if (!response.ok) {
         throw new Error(result.message || '上传失败');

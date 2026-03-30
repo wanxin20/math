@@ -24,6 +24,11 @@ export class UpdateUserDto {
   @IsString()
   title?: string;
 
+  @ApiPropertyOptional({ description: '年级（在校学生选填）' })
+  @IsOptional()
+  @IsString()
+  grade?: string;
+
   @ApiPropertyOptional({ description: '手机号码' })
   @IsOptional()
   @IsString()

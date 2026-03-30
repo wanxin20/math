@@ -1,16 +1,20 @@
 import React from 'react';
 import { Language } from '../../../i18n';
+import GradeSelect from '../../../components/GradeSelect';
+
+export interface ProfileFormData {
+  name: string;
+  institution: string;
+  title: string;
+  grade: string;
+  phone: string;
+}
 
 interface ProfileModalProps {
   lang: Language;
-  profileForm: {
-    name: string;
-    institution: string;
-    title: string;
-    phone: string;
-  };
+  profileForm: ProfileFormData;
   updatingProfile: boolean;
-  onFormChange: (form: { name: string; institution: string; title: string; phone: string }) => void;
+  onFormChange: (form: ProfileFormData) => void;
   onSave: () => void;
   onClose: () => void;
 }
@@ -57,6 +61,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               type="text"
               value={profileForm.title}
               onChange={(e) => onFormChange({ ...profileForm, title: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{lang === 'zh' ? '年级（选填）' : 'Grade (Optional)'}</label>
+            <GradeSelect
+              value={profileForm.grade}
+              onChange={(val) => onFormChange({ ...profileForm, grade: val })}
+              lang={lang}
               className="w-full border border-gray-300 rounded-lg px-4 py-2"
             />
           </div>

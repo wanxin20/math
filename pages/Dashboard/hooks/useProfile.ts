@@ -17,6 +17,7 @@ export function useProfile({ user, setNotification, onUpdateUser, lang }: UsePro
     name: user.name || '',
     institution: user.institution || '',
     title: user.title || '',
+    grade: user.grade || '',
     phone: user.phone || '',
   });
   const [updatingProfile, setUpdatingProfile] = useState(false);
@@ -31,6 +32,7 @@ export function useProfile({ user, setNotification, onUpdateUser, lang }: UsePro
           name: userData.name || '',
           institution: userData.institution || '',
           title: userData.title || '',
+          grade: userData.grade || '',
           phone: userData.phone || '',
         });
       } else {
@@ -38,6 +40,7 @@ export function useProfile({ user, setNotification, onUpdateUser, lang }: UsePro
           name: user.name || '',
           institution: user.institution || '',
           title: user.title || '',
+          grade: user.grade || '',
           phone: user.phone || '',
         });
       }
@@ -47,6 +50,7 @@ export function useProfile({ user, setNotification, onUpdateUser, lang }: UsePro
         name: user.name || '',
         institution: user.institution || '',
         title: user.title || '',
+        grade: user.grade || '',
         phone: user.phone || '',
       });
     }

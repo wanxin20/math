@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEmail, IsNotEmpty, MinLength, Matches, Length } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsEmail, IsNotEmpty, IsOptional, MinLength, Matches, Length } from 'class-validator';
 import { IsStrongPassword } from '@/common/validators/password.validator';
 
 export class RegisterDto {
@@ -28,6 +28,11 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty({ message: '职称不能为空' })
   title: string;
+
+  @ApiPropertyOptional({ description: '年级（在校学生选填）', example: '大四' })
+  @IsOptional()
+  @IsString()
+  grade?: string;
 
   @ApiProperty({ description: '手机号码', example: '13800138000' })
   @IsString()

@@ -4,9 +4,10 @@
 
 ## 📋 架构说明
 
-采用**双实例 + 两库**方案：
+采用**多实例 + 多库**方案：
 - **论文评选系统**：端口 3000，数据库 `teacher_research_platform`
 - **教改系统**：端口 3001，数据库 `teacher_research_reform`
+- **竞赛系统**：端口 3002，数据库 `teacher_research_contest`
 
 前端通过路由区分：
 - 论文评选：`/paper/*` → API: `http://localhost:3000/api/v1`
@@ -104,6 +105,16 @@ DB_PORT=37159
 DB_USERNAME=root
 DB_PASSWORD=szddzg7k
 DB_DATABASE=teacher_research_reform
+```
+
+### .env.contest（竞赛系统）
+```env
+PORT=3002
+DB_HOST=dbconn.sealosgzg.site
+DB_PORT=41234
+DB_USERNAME=root
+DB_PASSWORD=dzvfb5n4
+DB_DATABASE=teacher_research_contest
 ```
 
 ## 🌐 生产环境部署

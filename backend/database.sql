@@ -21,6 +21,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL COMMENT '密码哈希值',
     institution VARCHAR(200) NOT NULL COMMENT '任教单位/学校',
     title VARCHAR(100) NOT NULL COMMENT '职称/职务',
+    grade VARCHAR(50) NULL COMMENT '年级（在校学生选填，如大四、硕士二年级等）',
     phone VARCHAR(20) NOT NULL COMMENT '手机号码',
     avatar_url VARCHAR(500) COMMENT '头像URL',
     status ENUM('active', 'suspended', 'deleted') DEFAULT 'active' COMMENT '账户状态',
@@ -43,7 +44,7 @@ CREATE TABLE competitions (
     title VARCHAR(200) NOT NULL COMMENT '评选标题',
     description TEXT COMMENT '评选描述',
     category VARCHAR(50) NOT NULL COMMENT '评选类别（基础教育/教学创新/教育技术）',
-    fee DECIMAL(10, 2) NOT NULL DEFAULT 0.00 COMMENT '评审费用（元）',
+    fee DECIMAL(10, 2) NOT NULL DEFAULT 0.00 COMMENT '报名费用（元）',
     deadline DATE NOT NULL COMMENT '截止日期',
     start_date DATE COMMENT '开始日期',
     -- max_participants INT COMMENT '最大参与人数',
@@ -69,7 +70,7 @@ CREATE TABLE user_registrations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '报名记录ID',
     user_id VARCHAR(36) NOT NULL COMMENT '用户ID',
     competition_id VARCHAR(50) NOT NULL COMMENT '评选项目ID',
-    status ENUM('PENDING_SUBMISSION', 'PENDING_PAYMENT', 'PAID', 'SUBMITTED', 'REVISION_REQUIRED', 'UNDER_REVIEW', 'REVIEWED', 'AWARDED', 'REJECTED') 
+    status ENUM('PENDING_SUBMISSION', 'PENDING_PAYMENT', 'SUBMITTED', 'REVISION_REQUIRED', 'UNDER_REVIEW', 'REVIEWED', 'AWARDED', 'REJECTED')
         DEFAULT 'PENDING_SUBMISSION' COMMENT '报名状态',
     registration_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
     notes TEXT COMMENT '备注信息',
@@ -133,7 +134,7 @@ CREATE TABLE paper_submissions (
     submission_file_name VARCHAR(255) NOT NULL COMMENT '提交文件名',
     submission_file_url VARCHAR(500) NOT NULL COMMENT '提交文件URL',
     submission_file_size BIGINT COMMENT '文件大小（字节）',
-    submission_file_type VARCHAR(50) COMMENT '文件类型（pdf/doc/zip）',
+    submission_file_type VARCHAR(255) COMMENT '文件类型（pdf/doc/zip）',
     submission_files JSON NULL COMMENT '多文件列表 [{fileName, fileUrl, size?, mimetype?}]',
     
     -- 提交信息

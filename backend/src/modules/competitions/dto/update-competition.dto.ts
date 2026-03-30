@@ -18,7 +18,7 @@ export class UpdateCompetitionDto {
   @IsOptional()
   category?: string;
 
-  @ApiPropertyOptional({ description: '评审费用' })
+  @ApiPropertyOptional({ description: '报名费用' })
   @IsNumber()
   @IsOptional()
   fee?: number;

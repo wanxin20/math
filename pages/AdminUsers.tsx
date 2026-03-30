@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userApi } from '../services/api';
+import { GRADE_GROUPS } from '../components/GradeSelect';
 
 interface User {
   id: string;
@@ -194,6 +195,7 @@ const AdminUsers: React.FC = () => {
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>邮箱</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>单位</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>职称</th>
+                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>年级</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>手机</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>状态</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151', fontSize: '14px' }}>角色</th>
@@ -222,6 +224,9 @@ const AdminUsers: React.FC = () => {
                     </td>
                     <td style={{ padding: '16px', fontSize: '14px', color: '#6b7280' }}>
                       {user.title}
+                    </td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: '#6b7280' }}>
+                      {user.grade || '-'}
                     </td>
                     <td style={{ padding: '16px', fontSize: '14px', color: '#6b7280' }}>
                       {user.phone}
@@ -539,9 +544,47 @@ const AdminUsers: React.FC = () => {
                 </div>
 
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}>
+                    年级 <span style={{ color: '#9ca3af', fontWeight: '400' }}>（选填）</span>
+                  </label>
+                  <select
+                    value={editingUser.grade || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, grade: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      outline: 'none',
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  >
+                    <option value="">不填</option>
+                    {GRADE_GROUPS.map((group) => (
+                      <optgroup key={group.label.en} label={group.label.zh}>
+                        {group.options.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label.zh}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
                     fontWeight: '600',
                     color: '#374151',
                     fontSize: '14px'

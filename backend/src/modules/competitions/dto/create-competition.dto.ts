@@ -18,7 +18,7 @@ export class CreateCompetitionDto {
   @IsNotEmpty()
   category: string;
 
-  @ApiProperty({ description: '评审费用', example: 200 })
+  @ApiProperty({ description: '报名费用', example: 200 })
   @IsNumber()
   fee: number;
 

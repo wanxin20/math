@@ -35,7 +35,7 @@ export class PaperSubmission {
   @Column({ name: 'submission_file_size', type: 'bigint', nullable: true, comment: '文件大小' })
   submissionFileSize: number;
 
-  @Column({ name: 'submission_file_type', length: 50, nullable: true, comment: '文件类型' })
+  @Column({ name: 'submission_file_type', length: 255, nullable: true, comment: '文件类型' })
   submissionFileType: string;
 
   /** 多文件：JSON 数组 [{ fileName, fileUrl, size?, mimetype? }]，为空则使用上面单文件字段 */

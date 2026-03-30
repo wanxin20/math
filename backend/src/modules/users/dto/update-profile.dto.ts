@@ -18,6 +18,11 @@ export class UpdateProfileDto {
   @IsString()
   title?: string;
 
+  @ApiProperty({ description: '年级（在校学生选填）', required: false })
+  @IsOptional()
+  @IsString()
+  grade?: string;
+
   @ApiProperty({ description: '手机号码', required: false })
   @IsOptional()
   @IsString()

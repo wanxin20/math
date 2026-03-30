@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { setSystem, SystemType } from '../store/system';
 import { SystemProvider } from '../contexts/SystemContext';
 import Layout from './Layout';
@@ -40,11 +40,25 @@ const SystemApp: React.FC<SystemAppProps> = ({ system }) => {
 
   const basePath = system === 'reform' ? '/reform' : system === 'contest' ? '/contest' : '/paper';
   const location = useLocation();
+  const navigate = useNavigate();
 
   // 让后端与 api.ts 使用当前系统
   useEffect(() => {
     setSystem(system);
   }, [system]);
+
+  // 监听 Token 过期事件，自动登出并跳转登录页
+  useEffect(() => {
+    const handleAuthExpired = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.system && detail.system !== system) return;
+      setUser(null);
+      setRegistrations([]);
+      navigate(`${basePath}/login`, { replace: true });
+    };
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => window.removeEventListener('auth:expired', handleAuthExpired);
+  }, [system, basePath, navigate]);
 
   // 从当前系统的 localStorage 恢复用户与报名
   useEffect(() => {

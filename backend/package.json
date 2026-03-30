@@ -14,6 +14,8 @@
     "start:prod": "node dist/main",
     "start:paper": "cp .env.paper .env && nest start --watch",
     "start:reform": "cp .env.reform .env && PORT=3001 nest start --watch",
+    "start:contest": "cp .env.contest .env && PORT=3002 nest start --watch",
+    "start:all": "concurrently --names \"paper,reform,contest\" --prefix-colors \"blue,green,yellow\" --kill-others \"npm run start:paper\" \"npm run start:reform\" \"npm run start:contest\"",
     "start:both": "concurrently --names \"paper,reform\" --prefix-colors \"blue,green\" --kill-others \"npm run start:paper\" \"PORT=3001 npm run start:reform\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",

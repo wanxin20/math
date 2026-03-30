@@ -30,6 +30,9 @@ export class User {
   @Column({ length: 100, comment: '职称/职务' })
   title: string;
 
+  @Column({ length: 50, nullable: true, comment: '年级（在校学生选填）' })
+  grade: string;
+
   @Column({ length: 20, comment: '手机号码' })
   phone: string;
 
