@@ -54,7 +54,7 @@ export class AuthService {
       passwordHash,
       institution: registerDto.institution,
       title: registerDto.title,
-      grade: registerDto.grade || null,
+      grade: registerDto.grade || undefined,
       phone: registerDto.phone,
       status: UserStatus.ACTIVE,
     });
