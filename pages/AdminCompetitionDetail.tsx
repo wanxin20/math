@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { TeamMember } from '../types';
 import { useSystem } from '../contexts/SystemContext';
 import { API_BASE_URL } from '../constants';
 
@@ -34,6 +35,7 @@ interface Registration {
     /** 多文件列表 */
     submissionFiles?: Array<{ fileName: string; fileUrl: string; size?: number; mimetype?: string }>;
   };
+  teamMembers?: TeamMember[];
   notes?: string;
   rejectionReason?: string;
 }
@@ -299,6 +301,9 @@ const AdminCompetitionDetail: React.FC = () => {
                     论文提交
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    竞赛组成员
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     操作
                   </th>
                 </tr>
@@ -352,6 +357,21 @@ const AdminCompetitionDetail: React.FC = () => {
                         </div>
                       ) : (
                         <span className="text-gray-400">未提交</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {reg.teamMembers && reg.teamMembers.length > 0 ? (
+                        <div className="max-w-xs">
+                          {reg.teamMembers.map((m, i) => (
+                            <div key={m.id} className="text-xs text-gray-600">
+                              <span className="font-medium text-gray-800">{m.name}</span>
+                              <span className="text-gray-400 ml-1">({m.institution})</span>
+                            </div>
+                          ))}
+                          <div className="text-xs text-gray-400 mt-1">{reg.teamMembers.length} 人</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm whitespace-nowrap">

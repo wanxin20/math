@@ -29,6 +29,7 @@ import { PaperSubmission } from './modules/papers/entities/paper-submission.enti
 import { AwardRecord } from './modules/awards/entities/award-record.entity';
 import { Resource } from './modules/resources/entities/resource.entity';
 import { NewsAnnouncement } from './modules/news/entities/news-announcement.entity';
+import { TeamMember } from './modules/registrations/entities/team-member.entity';
 
 // 配置模块
 import { APP_GUARD } from '@nestjs/core';
@@ -61,6 +62,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
           AwardRecord,
           Resource,
           NewsAnnouncement,
+          TeamMember,
         ],
         synchronize: false, // 开发环境自动同步，生产环境使用migration
         logging: configService.get('NODE_ENV') === 'development',

@@ -15,6 +15,7 @@ import { Competition } from '../../competitions/entities/competition.entity';
 import { RegistrationPayment } from '../../payments/entities/registration-payment.entity';
 import { PaperSubmission } from '../../papers/entities/paper-submission.entity';
 import { AwardRecord } from '../../awards/entities/award-record.entity';
+import { TeamMember } from './team-member.entity';
 
 @Entity('user_registrations')
 export class UserRegistration {
@@ -90,4 +91,7 @@ export class UserRegistration {
 
   @OneToOne(() => AwardRecord, (award) => award.registration)
   awardRecord: AwardRecord;
+
+  @OneToMany(() => TeamMember, (member) => member.registration, { cascade: true })
+  teamMembers: TeamMember[];
 }

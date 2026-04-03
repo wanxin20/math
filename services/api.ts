@@ -99,16 +99,21 @@ async function request<T = any>(
     const data = await response.json();
 
     if (!response.ok) {
-      // Token 过期或无效，触发重新登录
       if (response.status === 401) {
-        const system = getCurrentSystemFromUrl();
-        localStorage.removeItem(`${system}_token`);
-        localStorage.removeItem(`${system}_user`);
-        localStorage.removeItem(`${system}_registrations`);
-        window.dispatchEvent(new CustomEvent('auth:expired', { detail: { system } }));
+        // 区分：已登录用户 token 过期 vs 登录时密码错误
+        const hasToken = !!token;
+        if (hasToken) {
+          // Token 过期或无效，触发重新登录
+          const system = getCurrentSystemFromUrl();
+          localStorage.removeItem(`${system}_token`);
+          localStorage.removeItem(`${system}_user`);
+          localStorage.removeItem(`${system}_registrations`);
+          window.dispatchEvent(new CustomEvent('auth:expired', { detail: { system } }));
+        }
+        const msg = Array.isArray(data.message) ? data.message.join('；') : (data.message || '登录已过期，请重新登录');
         return {
           success: false,
-          message: '登录已过期，请重新登录',
+          message: msg,
           code: 401,
         };
       }
@@ -330,6 +335,26 @@ export const registrationApi = {
     return request(`/registrations/${registrationId}/reject`, {
       method: 'POST',
       body: JSON.stringify({ reason: reason || undefined }),
+    });
+  },
+
+  // 获取竞赛组成员列表
+  getTeamMembers: async (registrationId: number) => {
+    return request(`/registrations/${registrationId}/team-members`);
+  },
+
+  // 覆盖式更新竞赛组成员列表
+  updateTeamMembers: async (registrationId: number, members: Array<{
+    name: string;
+    institution: string;
+    title?: string;
+    phone?: string;
+    email?: string;
+    sortOrder?: number;
+  }>) => {
+    return request(`/registrations/${registrationId}/team-members`, {
+      method: 'PUT',
+      body: JSON.stringify({ members }),
     });
   },
 

@@ -6,15 +6,31 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { UserRegistration } from './entities/user-registration.entity';
+import { TeamMember } from './entities/team-member.entity';
 import { Competition } from '../competitions/entities/competition.entity';
 import { RegistrationPayment } from '../payments/entities/registration-payment.entity';
+import { PaperSubmission } from '../papers/entities/paper-submission.entity';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { UpdateTeamMembersDto } from './dto/update-team-members.dto';
 import { RegistrationStatus } from '@/common/enums/registration-status.enum';
 import { PaymentStatus } from '@/common/enums/payment-status.enum';
 import { CompetitionStatus } from '@/common/enums/competition-status.enum';
+
+/** 按 sortOrder 排序竞赛组成员 */
+function sortedTeamMembers(members: TeamMember[] | undefined): TeamMember[] {
+  return (members || []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/** 这些状态下不允许修改竞赛组成员 */
+const LOCKED_STATUSES: RegistrationStatus[] = [
+  RegistrationStatus.UNDER_REVIEW,
+  RegistrationStatus.REVIEWED,
+  RegistrationStatus.AWARDED,
+  RegistrationStatus.REJECTED,
+];
 
 @Injectable()
 export class RegistrationsService {
@@ -23,10 +39,15 @@ export class RegistrationsService {
   constructor(
     @InjectRepository(UserRegistration)
     private registrationsRepository: Repository<UserRegistration>,
+    @InjectRepository(TeamMember)
+    private teamMemberRepository: Repository<TeamMember>,
     @InjectRepository(Competition)
     private competitionsRepository: Repository<Competition>,
     @InjectRepository(RegistrationPayment)
     private paymentsRepository: Repository<RegistrationPayment>,
+    @InjectRepository(PaperSubmission)
+    private paperSubmissionRepository: Repository<PaperSubmission>,
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -91,7 +112,7 @@ export class RegistrationsService {
   async findUserRegistrations(userId: string) {
     const registrations = await this.registrationsRepository.find({
       where: { userId },
-      relations: ['competition', 'payments', 'paperSubmission'],
+      relations: ['competition', 'payments', 'paperSubmission', 'teamMembers'],
       order: { registrationTime: 'DESC' },
     });
 
@@ -117,6 +138,7 @@ export class RegistrationsService {
       registrationTime: reg.registrationTime,
       payment: reg.payments?.[0],
       paperSubmission: reg.paperSubmission,
+      teamMembers: sortedTeamMembers(reg.teamMembers),
       rejectionReason: reg.rejectionReason,
     }));
   }
@@ -130,7 +152,7 @@ export class RegistrationsService {
     this.logger.log(`[DEBUG] confirmSubmission 被调用: registrationId=${id} userId=${userId}`);
     const registration = await this.registrationsRepository.findOne({
       where: { id, userId },
-      relations: ['paperSubmission', 'payments'],
+      relations: ['paperSubmission', 'payments', 'teamMembers'],
     });
 
     if (!registration) {
@@ -154,6 +176,9 @@ export class RegistrationsService {
     const hasSuccessfulPayment = registration.payments?.some(
       payment => payment.paymentStatus === PaymentStatus.SUCCESS
     );
+
+    // 同步竞赛组成员到 PaperSubmission.coAuthors（直接用已加载的 teamMembers，避免额外查询）
+    await this.syncCoAuthors(registration.paperSubmission.id, sortedTeamMembers(registration.teamMembers));
 
     if (hasSuccessfulPayment || registration.status === RegistrationStatus.REVISION_REQUIRED) {
       // 已支付过或从 REVISION_REQUIRED 状态提交，直接进入已提交状态
@@ -300,7 +325,7 @@ export class RegistrationsService {
   async findByCompetitionId(competitionId: string) {
     const registrations = await this.registrationsRepository.find({
       where: { competitionId },
-      relations: ['user', 'competition', 'payments', 'paperSubmission'],
+      relations: ['user', 'competition', 'payments', 'paperSubmission', 'teamMembers'],
       order: { registrationTime: 'DESC' },
     });
 
@@ -321,6 +346,7 @@ export class RegistrationsService {
       registrationTime: reg.registrationTime,
       payment: reg.payments?.[0],
       paperSubmission: reg.paperSubmission,
+      teamMembers: sortedTeamMembers(reg.teamMembers),
       notes: reg.notes,
       needInvoice: reg.needInvoice,
       invoiceTitle: reg.invoiceTitle,
@@ -339,7 +365,7 @@ export class RegistrationsService {
     const ExcelJS = await import('exceljs');
     const registrations = await this.registrationsRepository.find({
       where: { competitionId },
-      relations: ['user', 'competition', 'payments', 'paperSubmission'],
+      relations: ['user', 'competition', 'payments', 'paperSubmission', 'teamMembers'],
       order: { registrationTime: 'DESC' },
     });
 
@@ -364,11 +390,13 @@ export class RegistrationsService {
 
     sheet.columns = [
       { header: '序号', key: 'index', width: 6 },
-      { header: '姓名', key: 'name', width: 12 },
+      { header: '组长姓名', key: 'name', width: 12 },
       { header: '邮箱', key: 'email', width: 22 },
       { header: '单位/学校', key: 'institution', width: 18 },
       { header: '职称/职务', key: 'title', width: 12 },
       { header: '年级', key: 'grade', width: 12 },
+      { header: '竞赛组成员', key: 'teamMembersStr', width: 40 },
+      { header: '成员人数', key: 'teamMemberCount', width: 10 },
       { header: '报名时间', key: 'registrationTime', width: 20 },
       { header: '报名状态', key: 'status', width: 10 },
       { header: '支付状态', key: 'paymentStatus', width: 10 },
@@ -401,6 +429,9 @@ export class RegistrationsService {
       const files = ps?.submissionFiles && Array.isArray(ps.submissionFiles) ? ps.submissionFiles : null;
       const fileList = files ?? (ps?.submissionFileName && ps?.submissionFileUrl ? [{ fileName: ps.submissionFileName, fileUrl: ps.submissionFileUrl }] : []);
 
+      const sorted = sortedTeamMembers(reg.teamMembers);
+      const teamMembersStr = sorted.map(m => `${m.name}(${m.institution})`).join('、');
+
       sheet.addRow({
         index: index + 1,
         name: reg.user?.name ?? '未知用户',
@@ -408,6 +439,8 @@ export class RegistrationsService {
         institution: reg.user?.institution ?? '',
         title: reg.user?.title ?? '',
         grade: reg.user?.grade ?? '',
+        teamMembersStr: teamMembersStr || '',
+        teamMemberCount: sorted.length,
         registrationTime: reg.registrationTime ? new Date(reg.registrationTime).toLocaleString('zh-CN') : '',
         status: statusText[reg.status] ?? reg.status,
         paymentStatus: payment?.paymentStatus === 'success' ? '已支付' : payment ? '待支付' : '-',
@@ -436,5 +469,98 @@ export class RegistrationsService {
     const buffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf as ArrayBuffer);
     const filename = `报名列表_${safeTitle}_${Date.now()}.xlsx`;
     return { buffer, filename };
+  }
+
+  // ==================== 竞赛组成员管理 ====================
+
+  /**
+   * 获取某个报名记录的竞赛组成员列表
+   */
+  async getTeamMembers(registrationId: number, userId: string) {
+    const registration = await this.registrationsRepository.findOne({
+      where: { id: registrationId, userId },
+    });
+    if (!registration) {
+      throw new NotFoundException('报名记录不存在');
+    }
+
+    return this.teamMemberRepository.find({
+      where: { registrationId },
+      order: { sortOrder: 'ASC', id: 'ASC' },
+    });
+  }
+
+  /**
+   * 覆盖式更新竞赛组成员列表
+   * - 校验状态锁定（UNDER_REVIEW 及之后不允许修改）
+   * - 校验人数限制（根据 Competition.minTeamSize / maxTeamSize）
+   */
+  async updateTeamMembers(registrationId: number, userId: string, dto: UpdateTeamMembersDto) {
+    const registration = await this.registrationsRepository.findOne({
+      where: { id: registrationId, userId },
+      relations: ['competition'],
+    });
+    if (!registration) {
+      throw new NotFoundException('报名记录不存在');
+    }
+
+    // 状态锁定校验
+    if (LOCKED_STATUSES.includes(registration.status)) {
+      throw new BadRequestException('当前状态不允许修改竞赛组成员');
+    }
+
+    // 人数限制校验
+    const { minTeamSize, maxTeamSize } = registration.competition || {};
+    const count = dto.members.length;
+    if (minTeamSize != null && count < minTeamSize) {
+      throw new BadRequestException(`竞赛组成员不能少于 ${minTeamSize} 人（不含组长）`);
+    }
+    if (maxTeamSize != null && count > maxTeamSize) {
+      throw new BadRequestException(`竞赛组成员不能超过 ${maxTeamSize} 人（不含组长）`);
+    }
+
+    // 覆盖式更新：事务内删除旧的，插入新的
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(TeamMember, { registrationId });
+
+      if (dto.members.length > 0) {
+        const entities = dto.members.map((m, index) =>
+          manager.create(TeamMember, {
+            registrationId,
+            name: m.name,
+            institution: m.institution,
+            title: m.title || undefined,
+            phone: m.phone || undefined,
+            email: m.email || undefined,
+            sortOrder: m.sortOrder ?? index,
+          }),
+        );
+        await manager.save(entities);
+      }
+    });
+
+    this.logger.log(`报名记录 ${registrationId} 竞赛组成员已更新，共 ${count} 人`);
+
+    return this.teamMemberRepository.find({
+      where: { registrationId },
+      order: { sortOrder: 'ASC', id: 'ASC' },
+    });
+  }
+
+  /**
+   * 同步竞赛组成员到 PaperSubmission.coAuthors
+   * 接收已排序的成员列表，避免额外查询
+   */
+  private async syncCoAuthors(paperSubmissionId: number, members: TeamMember[]) {
+    if (members.length > 0) {
+      const coAuthorsJson = JSON.stringify(
+        members.map((m) => ({ name: m.name, institution: m.institution })),
+      );
+      await this.paperSubmissionRepository.update(paperSubmissionId, {
+        coAuthors: coAuthorsJson,
+        authorCount: members.length + 1,
+      });
+      this.logger.log(`PaperSubmission ${paperSubmissionId} coAuthors 已同步 ${members.length} 名成员`);
+    }
   }
 }

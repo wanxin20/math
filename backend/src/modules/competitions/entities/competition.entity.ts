@@ -58,6 +58,12 @@ export class Competition {
   @Column({ name: 'problem_attachment_name', length: 300, nullable: true, comment: '赛题附件原始文件名' })
   problemAttachmentName: string;
 
+  @Column({ name: 'min_team_size', nullable: true, comment: '竞赛组最少成员数（不含组长，仅 contest 系统使用）' })
+  minTeamSize: number;
+
+  @Column({ name: 'max_team_size', nullable: true, comment: '竞赛组最多成员数（不含组长，仅 contest 系统使用）' })
+  maxTeamSize: number;
+
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 

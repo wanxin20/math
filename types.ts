@@ -34,6 +34,16 @@ export interface User {
   role?: 'user' | 'admin';
 }
 
+export interface TeamMember {
+  id?: number;
+  name: string;
+  institution: string;
+  title?: string;
+  phone?: string;
+  email?: string;
+  sortOrder?: number;
+}
+
 export interface UserRegistration {
   competitionId: string;
   status: RegistrationStatus;

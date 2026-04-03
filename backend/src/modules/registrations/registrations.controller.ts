@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, ParseIntPipe, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Body, Param, UseGuards, ParseIntPipe, StreamableFile } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { RegistrationsService } from './registrations.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { RejectSubmissionDto } from './dto/reject-submission.dto';
+import { UpdateTeamMembersDto } from './dto/update-team-members.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { CurrentUser } from '@/common/decorators/user.decorator';
@@ -55,6 +56,27 @@ export class RegistrationsController {
   @ApiOperation({ summary: '获取报名记录详情' })
   async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser('userId') userId: string) {
     return this.registrationsService.findOne(id, userId);
+  }
+
+  @Get(':id/team-members')
+  @ApiOperation({ summary: '获取竞赛组成员列表' })
+  async getTeamMembers(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('userId') userId: string,
+  ) {
+    return this.registrationsService.getTeamMembers(id, userId);
+  }
+
+  @Put(':id/team-members')
+  @ApiOperation({ summary: '覆盖式更新竞赛组成员列表' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 400, description: '状态不允许修改 / 人数超限' })
+  async updateTeamMembers(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateTeamMembersDto,
+  ) {
+    return this.registrationsService.updateTeamMembers(id, userId, dto);
   }
 
   @Get('check/:competitionId')

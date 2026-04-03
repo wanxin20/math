@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RegistrationStatus } from '../../types';
+import { RegistrationStatus, TeamMember } from '../../types';
 import { translations } from '../../i18n';
 import api from '../../services/api';
 import NotificationModal from '../../components/NotificationModal';
@@ -14,6 +14,7 @@ import { useProfile } from './hooks/useProfile';
 import { usePassword } from './hooks/usePassword';
 
 import RegistrationCard from './components/RegistrationCard';
+import TeamMemberModal from './components/TeamMemberModal';
 import PaymentModal from './components/PaymentModal';
 import InvoiceModals from './components/InvoiceModals';
 import ProfileModal from './components/ProfileModal';
@@ -112,6 +113,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
     handleChangePassword,
   } = usePassword({ user, setNotification, lang });
 
+  // 竞赛组成员管理（仅 contest 系统）
+  const [teamMemberModal, setTeamMemberModal] = useState<{
+    show: boolean;
+    registrationId: number;
+    members: TeamMember[];
+    editable: boolean;
+  }>({ show: false, registrationId: 0, members: [], editable: false });
+
+  const LOCKED_STATUSES: RegistrationStatus[] = [
+    RegistrationStatus.UNDER_REVIEW,
+    RegistrationStatus.REVIEWED,
+    RegistrationStatus.AWARDED,
+    RegistrationStatus.REJECTED,
+  ];
+
+  const handleManageTeamMembers = (registrationId: number) => {
+    const reg = myRegistrations.find((r: any) => r.id === registrationId);
+    if (!reg) return;
+    const locked = LOCKED_STATUSES.includes(reg.status);
+    setTeamMemberModal({
+      show: true,
+      registrationId,
+      members: reg.teamMembers || [],
+      editable: !locked,
+    });
+  };
+
   // 初始化加载
   useEffect(() => {
     loadMyRegistrations();
@@ -187,6 +215,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
               reg={reg}
               regIndex={index}
               lang={lang}
+              system={system}
               submittingPaper={submittingPaper}
               uploadProgress={uploadProgress}
               getStatusText={getStatusText}
@@ -195,6 +224,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
               onPayClick={handlePayClick}
               onDeleteSavedFile={handleDeleteSavedFile}
               onViewPaper={handleViewPaper}
+              onManageTeamMembers={system === 'contest' ? handleManageTeamMembers : undefined}
             />
           ))}
         </div>
@@ -293,6 +323,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
           onSendCode={handleSendPasswordCode}
           onChangePassword={handleChangePassword}
           onClose={() => setShowPasswordModal(false)}
+        />
+      )}
+
+      {/* 竞赛组成员管理弹窗（仅 contest 系统） */}
+      {teamMemberModal.show && (
+        <TeamMemberModal
+          lang={lang}
+          registrationId={teamMemberModal.registrationId}
+          initialMembers={teamMemberModal.members}
+          editable={teamMemberModal.editable}
+          onClose={() => setTeamMemberModal({ ...teamMemberModal, show: false })}
+          onSaved={() => loadMyRegistrations()}
         />
       )}
     </div>
