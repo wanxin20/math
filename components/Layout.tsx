@@ -50,6 +50,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
             {user && (
               <Link to={basePath + '/dashboard'} className={`text-sm font-medium transition ${isActive('/dashboard') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.dashboard}</Link>
             )}
+            {system === 'contest' && user && (user.role === 'judge' || user.role === 'admin') && (
+              <Link to={basePath + '/judge'} className={`text-sm font-medium transition ${isActive('/judge') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>
+                评审中心
+              </Link>
+            )}
             {user && user.role === 'admin' && (
               <>
                 <Link to={basePath + '/admin/users'} className={`text-sm font-medium transition ${isActive('/admin/users') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.userMgmt}</Link>
@@ -134,11 +139,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                     <i className="fas fa-user-circle w-8"></i>{t.dashboard}
                   </Link>
                 )}
+                {system === 'contest' && user && (user.role === 'judge' || user.role === 'admin') && (
+                  <Link
+                    to={basePath + '/judge'}
+                    onClick={closeMenu}
+                    className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/judge') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <i className="fas fa-gavel w-8"></i>评审中心
+                  </Link>
+                )}
                 {user && user.role === 'admin' && (
                   <>
-                    <Link 
-                      to={basePath + '/admin/users'} 
-                      onClick={closeMenu} 
+                    <Link
+                      to={basePath + '/admin/users'}
+                      onClick={closeMenu}
                       className={`px-4 py-3 rounded-xl text-base font-semibold ${isActive('/admin/users') ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
                       <i className="fas fa-users-cog w-8"></i>{t.userMgmt}

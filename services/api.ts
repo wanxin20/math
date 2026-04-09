@@ -358,6 +358,26 @@ export const registrationApi = {
     });
   },
 
+  // 获取指导老师列表
+  getAdvisors: async (registrationId: number) => {
+    return request(`/registrations/${registrationId}/advisors`);
+  },
+
+  // 覆盖式更新指导老师列表
+  updateAdvisors: async (registrationId: number, advisors: Array<{
+    name: string;
+    institution: string;
+    title?: string;
+    phone: string;
+    email?: string;
+    sortOrder?: number;
+  }>) => {
+    return request(`/registrations/${registrationId}/advisors`, {
+      method: 'PUT',
+      body: JSON.stringify({ advisors }),
+    });
+  },
+
   // 更新报名发票信息（缴费前）
   updateInvoice: async (
     registrationId: number,
@@ -836,6 +856,74 @@ export const uploadApi = {
   },
 };
 
+// 评审打分相关 API
+export const judgeApi = {
+  // 评委：获取分配给我的竞赛列表
+  getAssignedCompetitions: async () => {
+    return request('/reviews/competitions');
+  },
+
+  // 评委：获取某竞赛下的提交列表
+  getSubmissions: async (competitionId: string) => {
+    return request(`/reviews/competitions/${competitionId}/submissions`);
+  },
+
+  // 评委：提交/更新评分
+  submitScore: async (data: {
+    registrationId: number;
+    competitionId: string;
+    totalScore: number;
+    criteriaScores?: Array<{ name: string; score: number; maxScore: number }>;
+    comments?: string;
+  }) => {
+    return request('/reviews/score', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // 管理员：获取所有评委用户
+  adminGetAllJudges: async () => {
+    return request('/reviews/admin/judges');
+  },
+
+  // 管理员：分配评委到竞赛
+  adminAssignJudge: async (judgeUserId: string, competitionId: string) => {
+    return request('/reviews/admin/assign', {
+      method: 'POST',
+      body: JSON.stringify({ judgeUserId, competitionId }),
+    });
+  },
+
+  // 管理员：移除评委分配
+  adminRemoveAssignment: async (assignmentId: number) => {
+    return request(`/reviews/admin/assign/${assignmentId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // 管理员：获取某竞赛的评委列表
+  adminGetJudgesForCompetition: async (competitionId: string) => {
+    return request(`/reviews/admin/competitions/${competitionId}/judges`);
+  },
+
+  // 管理员：获取某竞赛的评分汇总
+  adminGetScores: async (competitionId: string) => {
+    return request(`/reviews/admin/competitions/${competitionId}/scores`);
+  },
+
+  // 管理员：更新竞赛评分标准
+  adminUpdateScoringCriteria: async (
+    competitionId: string,
+    criteria: Array<{ name: string; maxScore: number; description?: string; weight?: number }>,
+  ) => {
+    return request(`/reviews/admin/competitions/${competitionId}/criteria`, {
+      method: 'POST',
+      body: JSON.stringify({ criteria }),
+    });
+  },
+};
+
 export default {
   auth: authApi,
   user: userApi,
@@ -846,4 +934,5 @@ export default {
   resource: resourceApi,
   news: newsApi,
   upload: uploadApi,
+  judge: judgeApi,
 };

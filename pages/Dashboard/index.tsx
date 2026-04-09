@@ -15,6 +15,7 @@ import { usePassword } from './hooks/usePassword';
 
 import RegistrationCard from './components/RegistrationCard';
 import TeamMemberModal from './components/TeamMemberModal';
+import AdvisorModal from './components/AdvisorModal';
 import PaymentModal from './components/PaymentModal';
 import InvoiceModals from './components/InvoiceModals';
 import ProfileModal from './components/ProfileModal';
@@ -140,6 +141,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
     });
   };
 
+  // 指导老师管理（仅 contest 系统）
+  const [advisorModal, setAdvisorModal] = useState<{
+    show: boolean;
+    registrationId: number;
+    advisors: any[];
+    editable: boolean;
+  }>({ show: false, registrationId: 0, advisors: [], editable: false });
+
+  const handleManageAdvisors = (registrationId: number) => {
+    const reg = myRegistrations.find((r: any) => r.id === registrationId);
+    if (!reg) return;
+    const locked = LOCKED_STATUSES.includes(reg.status);
+    setAdvisorModal({
+      show: true,
+      registrationId,
+      advisors: reg.advisors || [],
+      editable: !locked,
+    });
+  };
+
   // 初始化加载
   useEffect(() => {
     loadMyRegistrations();
@@ -225,6 +246,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
               onDeleteSavedFile={handleDeleteSavedFile}
               onViewPaper={handleViewPaper}
               onManageTeamMembers={system === 'contest' ? handleManageTeamMembers : undefined}
+              onManageAdvisors={system === 'contest' ? handleManageAdvisors : undefined}
             />
           ))}
         </div>
@@ -334,6 +356,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, registrations, onPay, onSub
           initialMembers={teamMemberModal.members}
           editable={teamMemberModal.editable}
           onClose={() => setTeamMemberModal({ ...teamMemberModal, show: false })}
+          onSaved={() => loadMyRegistrations()}
+        />
+      )}
+
+      {/* 指导老师管理弹窗（仅 contest 系统） */}
+      {advisorModal.show && (
+        <AdvisorModal
+          lang={lang}
+          registrationId={advisorModal.registrationId}
+          initialAdvisors={advisorModal.advisors}
+          editable={advisorModal.editable}
+          onClose={() => setAdvisorModal({ ...advisorModal, show: false })}
           onSaved={() => loadMyRegistrations()}
         />
       )}

@@ -114,11 +114,15 @@ const AdminUsers: React.FC = () => {
   };
 
   const getRoleText = (role: string) => {
-    return role === 'admin' ? '管理员' : '普通用户';
+    if (role === 'admin') return '管理员';
+    if (role === 'judge') return '评委';
+    return '普通用户';
   };
 
   const getRoleColor = (role: string) => {
-    return role === 'admin' ? '#6366f1' : '#6b7280';
+    if (role === 'admin') return '#6366f1';
+    if (role === 'judge') return '#9333ea';
+    return '#6b7280';
   };
 
   return (
@@ -609,6 +613,7 @@ const AdminUsers: React.FC = () => {
                     onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   >
                     <option value="user">普通用户</option>
+                    <option value="judge">评委</option>
                     <option value="admin">管理员</option>
                   </select>
                 </div>

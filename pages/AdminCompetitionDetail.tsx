@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { TeamMember } from '../types';
+import api, { judgeApi } from '../services/api';
+import { TeamMember, ScoringCriteria, ScoreSummaryItem } from '../types';
 import { useSystem } from '../contexts/SystemContext';
 import { API_BASE_URL } from '../constants';
 
@@ -49,12 +49,22 @@ interface Competition {
   deadline: string;
   currentParticipants: number;
   status: string;
+  scoringCriteria?: ScoringCriteria[] | null;
 }
+
+interface AssignedJudge {
+  assignmentId: number;
+  judge: { id: string; name: string; email: string; institution: string };
+  scoredCount: number;
+  assignedAt: string;
+}
+
+type TabKey = 'registrations' | 'judges' | 'scores';
 
 const AdminCompetitionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { basePath } = useSystem();
+  const { basePath, system } = useSystem();
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +85,23 @@ const AdminCompetitionDetail: React.FC = () => {
   });
   const [rejectReason, setRejectReason] = useState('');
   const [rejecting, setRejecting] = useState(false);
+
+  // 标签页
+  const [activeTab, setActiveTab] = useState<TabKey>('registrations');
+
+  // 评委管理
+  const [assignedJudges, setAssignedJudges] = useState<AssignedJudge[]>([]);
+  const [allJudges, setAllJudges] = useState<Array<{ id: string; name: string; email: string; institution: string }>>([]);
+  const [selectedJudgeId, setSelectedJudgeId] = useState('');
+  const [assigningJudge, setAssigningJudge] = useState(false);
+
+  // 评分标准
+  const [editingCriteria, setEditingCriteria] = useState<ScoringCriteria[]>([]);
+  const [showCriteriaEditor, setShowCriteriaEditor] = useState(false);
+  const [savingCriteria, setSavingCriteria] = useState(false);
+
+  // 评分汇总
+  const [scoreSummary, setScoreSummary] = useState<ScoreSummaryItem[]>([]);
 
   const closeDropdown = () => {
     setOpenDropdownRegId(null);
@@ -108,14 +135,13 @@ const AdminCompetitionDetail: React.FC = () => {
     
     setLoading(true);
     try {
-      // 加载竞赛信息
-      const compResponse = await api.competition.getDetail(id);
+      const [compResponse, regResponse] = await Promise.all([
+        api.competition.getDetail(id),
+        api.registration.getByCompetitionId(id),
+      ]);
       if (compResponse.success && compResponse.data) {
         setCompetition(compResponse.data);
       }
-
-      // 加载报名列表
-      const regResponse = await api.registration.getByCompetitionId(id);
       if (regResponse.success && regResponse.data) {
         setRegistrations(Array.isArray(regResponse.data) ? regResponse.data : []);
       }
@@ -124,6 +150,94 @@ const AdminCompetitionDetail: React.FC = () => {
       alert('加载数据失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 切换 tab 时加载对应数据
+  useEffect(() => {
+    if (!id) return;
+    if (activeTab === 'judges') loadJudgesData();
+    if (activeTab === 'scores') loadScoresData();
+  }, [activeTab, id]);
+
+  const loadJudgesData = async () => {
+    if (!id) return;
+    try {
+      const [judgesRes, allJudgesRes] = await Promise.all([
+        judgeApi.adminGetJudgesForCompetition(id),
+        judgeApi.adminGetAllJudges(),
+      ]);
+      if (judgesRes.success) setAssignedJudges(judgesRes.data || []);
+      if (allJudgesRes.success) setAllJudges(allJudgesRes.data || []);
+    } catch (e) {
+      console.error('加载评委数据失败', e);
+    }
+  };
+
+  const loadScoresData = async () => {
+    if (!id) return;
+    try {
+      const res = await judgeApi.adminGetScores(id);
+      if (res.success) setScoreSummary(res.data || []);
+    } catch (e) {
+      console.error('加载评分数据失败', e);
+    }
+  };
+
+  const handleAssignJudge = async () => {
+    if (!id || !selectedJudgeId) return;
+    setAssigningJudge(true);
+    try {
+      const res = await judgeApi.adminAssignJudge(selectedJudgeId, id);
+      if (res.success) {
+        setSelectedJudgeId('');
+        await loadJudgesData();
+      } else {
+        alert(res.message || '分配失败');
+      }
+    } catch (e: any) {
+      alert(e.message || '分配失败');
+    } finally {
+      setAssigningJudge(false);
+    }
+  };
+
+  const handleRemoveJudge = async (assignmentId: number) => {
+    if (!confirm('确定移除该评委？')) return;
+    try {
+      const res = await judgeApi.adminRemoveAssignment(assignmentId);
+      if (res.success) await loadJudgesData();
+      else alert(res.message || '移除失败');
+    } catch (e: any) {
+      alert(e.message || '移除失败');
+    }
+  };
+
+  const handleOpenCriteriaEditor = () => {
+    setEditingCriteria(competition?.scoringCriteria || [{ name: '', maxScore: 100, description: '' }]);
+    setShowCriteriaEditor(true);
+  };
+
+  const handleSaveCriteria = async () => {
+    if (!id) return;
+    const valid = editingCriteria.filter(c => c.name.trim());
+    if (valid.length === 0) {
+      alert('请至少填写一个评分维度');
+      return;
+    }
+    setSavingCriteria(true);
+    try {
+      const res = await judgeApi.adminUpdateScoringCriteria(id, valid);
+      if (res.success) {
+        setShowCriteriaEditor(false);
+        await loadData();
+      } else {
+        alert(res.message || '保存失败');
+      }
+    } catch (e: any) {
+      alert(e.message || '保存失败');
+    } finally {
+      setSavingCriteria(false);
     }
   };
 
@@ -258,8 +372,310 @@ const AdminCompetitionDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* 报名列表 */}
-      <div className="bg-white p-6 rounded-lg shadow-sm">
+      {/* 标签页切换 */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="flex border-b border-gray-200 px-6">
+          {([
+            { key: 'registrations' as TabKey, label: '报名列表', icon: 'fa-list' },
+            ...(system === 'contest' ? [
+              { key: 'judges' as TabKey, label: '评委管理', icon: 'fa-gavel' },
+              { key: 'scores' as TabKey, label: '评分汇总', icon: 'fa-chart-bar' },
+            ] : []),
+          ]).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-5 py-3.5 text-sm font-medium border-b-2 transition flex items-center gap-2 ${
+                activeTab === tab.key
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <i className={`fas ${tab.icon}`}></i>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 评委管理 Tab */}
+      {activeTab === 'judges' && (
+        <div className="space-y-6">
+          {/* 评分标准配置 */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                <i className="fas fa-sliders-h mr-2 text-indigo-500"></i>评分标准
+              </h2>
+              <button
+                onClick={handleOpenCriteriaEditor}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+              >
+                {competition?.scoringCriteria?.length ? '修改标准' : '设置标准'}
+              </button>
+            </div>
+            {competition?.scoringCriteria && competition.scoringCriteria.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {competition.scoringCriteria.map((c, i) => (
+                  <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <div className="font-semibold text-gray-800 mb-1">{c.name}</div>
+                    <div className="text-2xl font-bold text-indigo-600">{c.maxScore}<span className="text-sm text-gray-400 font-normal">分</span></div>
+                    {c.description && <p className="text-xs text-gray-500 mt-1">{c.description}</p>}
+                  </div>
+                ))}
+                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-100 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-sm text-indigo-500">满分</div>
+                    <div className="text-2xl font-bold text-indigo-700">
+                      {competition.scoringCriteria.reduce((s, c) => s + c.maxScore, 0)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-gray-400">
+                <i className="fas fa-ruler-combined text-3xl mb-2"></i>
+                <p>尚未设置评分标准，请点击"设置标准"进行配置</p>
+              </div>
+            )}
+          </div>
+
+          {/* 评委分配 */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              <i className="fas fa-user-plus mr-2 text-indigo-500"></i>分配评委
+            </h2>
+            <div className="flex gap-3 mb-6">
+              <select
+                value={selectedJudgeId}
+                onChange={e => setSelectedJudgeId(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">选择评委...</option>
+                {allJudges
+                  .filter(j => !assignedJudges.some(a => a.judge.id === j.id))
+                  .map(j => (
+                    <option key={j.id} value={j.id}>{j.name} ({j.institution}) - {j.email}</option>
+                  ))}
+              </select>
+              <button
+                onClick={handleAssignJudge}
+                disabled={!selectedJudgeId || assigningJudge}
+                className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 text-sm font-medium whitespace-nowrap"
+              >
+                {assigningJudge ? '分配中...' : '分配'}
+              </button>
+            </div>
+
+            {assignedJudges.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <i className="fas fa-users text-3xl mb-2"></i>
+                <p>暂无已分配的评委</p>
+                <p className="text-xs mt-1">请先在"用户管理"中将用户角色设为"评委"，然后在此处分配</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {assignedJudges.map(a => (
+                  <div key={a.assignmentId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">
+                        {a.judge.name[0]}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-800">{a.judge.name}</div>
+                        <div className="text-xs text-gray-500">{a.judge.institution} · {a.judge.email}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-gray-500">已评 <span className="font-semibold text-indigo-600">{a.scoredCount}</span> 份</span>
+                      <button
+                        onClick={() => handleRemoveJudge(a.assignmentId)}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                        title="移除评委"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 评分汇总 Tab */}
+      {activeTab === 'scores' && (
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">
+              <i className="fas fa-chart-bar mr-2 text-indigo-500"></i>评分汇总
+            </h2>
+            <button onClick={loadScoresData} className="text-sm text-indigo-600 hover:text-indigo-800">
+              <i className="fas fa-sync-alt mr-1"></i>刷新
+            </button>
+          </div>
+
+          {scoreSummary.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <i className="fas fa-chart-line text-4xl mb-3"></i>
+              <p>暂无评分数据</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">作者</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">论文标题</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">评委数</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">平均分</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">各评委评分</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {[...scoreSummary]
+                    .sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0))
+                    .map((item) => (
+                    <tr key={item.registrationId} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-semibold text-gray-800">{item.user.name}</div>
+                        <div className="text-xs text-gray-500">{item.user.institution}</div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">
+                        {item.paperTitle}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm text-gray-600">
+                        {item.judgeCount}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {item.avgScore !== null ? (
+                          <span className="text-lg font-bold text-indigo-600">{item.avgScore}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {item.scores.length > 0 ? (
+                          <div className="space-y-1">
+                            {item.scores.map(s => (
+                              <div key={s.id} className="flex items-center gap-2">
+                                <span className="text-gray-500 text-xs w-16 truncate">{s.judgeName}</span>
+                                <span className="font-semibold text-gray-800">{s.totalScore}</span>
+                                {s.comments && (
+                                  <span className="text-xs text-gray-400 truncate max-w-[150px]" title={s.comments}>
+                                    "{s.comments}"
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">暂无评分</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 评分标准编辑弹窗 */}
+      {showCriteriaEditor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              <i className="fas fa-sliders-h mr-2 text-indigo-500"></i>配置评分标准
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">设置评委打分的维度和每项满分值。评委将按各维度分别打分。</p>
+
+            <div className="space-y-3 mb-4">
+              {editingCriteria.map((c, idx) => (
+                <div key={idx} className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1 space-y-2">
+                    <input
+                      type="text"
+                      value={c.name}
+                      onChange={e => {
+                        const arr = [...editingCriteria];
+                        arr[idx] = { ...arr[idx], name: e.target.value };
+                        setEditingCriteria(arr);
+                      }}
+                      placeholder="维度名称（如：创新性）"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={c.maxScore}
+                        onChange={e => {
+                          const arr = [...editingCriteria];
+                          arr[idx] = { ...arr[idx], maxScore: Number(e.target.value) || 0 };
+                          setEditingCriteria(arr);
+                        }}
+                        placeholder="满分"
+                        min={1}
+                        className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      />
+                      <input
+                        type="text"
+                        value={c.description || ''}
+                        onChange={e => {
+                          const arr = [...editingCriteria];
+                          arr[idx] = { ...arr[idx], description: e.target.value };
+                          setEditingCriteria(arr);
+                        }}
+                        placeholder="描述（选填）"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEditingCriteria(prev => prev.filter((_, i) => i !== idx))}
+                    className="text-red-400 hover:text-red-600 mt-2"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setEditingCriteria(prev => [...prev, { name: '', maxScore: 10, description: '' }])}
+              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition mb-4"
+            >
+              <i className="fas fa-plus mr-1"></i> 添加维度
+            </button>
+
+            <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+              <span className="text-sm text-gray-500">
+                总分：{editingCriteria.reduce((s, c) => s + (c.maxScore || 0), 0)} 分
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCriteriaEditor(false)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSaveCriteria}
+                  disabled={savingCriteria}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 text-sm font-medium"
+                >
+                  {savingCriteria ? '保存中...' : '保存'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 报名列表 Tab */}
+      {activeTab === 'registrations' && <div className="bg-white p-6 rounded-lg shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <h2 className="text-xl font-bold text-gray-900">
             报名列表 ({registrations.length}人)
@@ -414,7 +830,7 @@ const AdminCompetitionDetail: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* 退回对话框 */}
       {rejectDialog.show && (

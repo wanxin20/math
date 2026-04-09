@@ -9,12 +9,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { UserRegistration } from './entities/user-registration.entity';
 import { TeamMember } from './entities/team-member.entity';
+import { Advisor } from './entities/advisor.entity';
 import { Competition } from '../competitions/entities/competition.entity';
 import { RegistrationPayment } from '../payments/entities/registration-payment.entity';
 import { PaperSubmission } from '../papers/entities/paper-submission.entity';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { UpdateTeamMembersDto } from './dto/update-team-members.dto';
+import { UpdateAdvisorsDto } from './dto/advisor.dto';
 import { RegistrationStatus } from '@/common/enums/registration-status.enum';
 import { PaymentStatus } from '@/common/enums/payment-status.enum';
 import { CompetitionStatus } from '@/common/enums/competition-status.enum';
@@ -41,6 +43,8 @@ export class RegistrationsService {
     private registrationsRepository: Repository<UserRegistration>,
     @InjectRepository(TeamMember)
     private teamMemberRepository: Repository<TeamMember>,
+    @InjectRepository(Advisor)
+    private advisorRepository: Repository<Advisor>,
     @InjectRepository(Competition)
     private competitionsRepository: Repository<Competition>,
     @InjectRepository(RegistrationPayment)
@@ -112,7 +116,7 @@ export class RegistrationsService {
   async findUserRegistrations(userId: string) {
     const registrations = await this.registrationsRepository.find({
       where: { userId },
-      relations: ['competition', 'payments', 'paperSubmission', 'teamMembers'],
+      relations: ['competition', 'payments', 'paperSubmission', 'teamMembers', 'advisors'],
       order: { registrationTime: 'DESC' },
     });
 
@@ -152,7 +156,7 @@ export class RegistrationsService {
     this.logger.log(`[DEBUG] confirmSubmission 被调用: registrationId=${id} userId=${userId}`);
     const registration = await this.registrationsRepository.findOne({
       where: { id, userId },
-      relations: ['paperSubmission', 'payments', 'teamMembers'],
+      relations: ['paperSubmission', 'payments', 'teamMembers', 'advisors'],
     });
 
     if (!registration) {
@@ -325,7 +329,7 @@ export class RegistrationsService {
   async findByCompetitionId(competitionId: string) {
     const registrations = await this.registrationsRepository.find({
       where: { competitionId },
-      relations: ['user', 'competition', 'payments', 'paperSubmission', 'teamMembers'],
+      relations: ['user', 'competition', 'payments', 'paperSubmission', 'teamMembers', 'advisors'],
       order: { registrationTime: 'DESC' },
     });
 
@@ -365,7 +369,7 @@ export class RegistrationsService {
     const ExcelJS = await import('exceljs');
     const registrations = await this.registrationsRepository.find({
       where: { competitionId },
-      relations: ['user', 'competition', 'payments', 'paperSubmission', 'teamMembers'],
+      relations: ['user', 'competition', 'payments', 'paperSubmission', 'teamMembers', 'advisors'],
       order: { registrationTime: 'DESC' },
     });
 
@@ -562,5 +566,63 @@ export class RegistrationsService {
       });
       this.logger.log(`PaperSubmission ${paperSubmissionId} coAuthors 已同步 ${members.length} 名成员`);
     }
+  }
+
+  // ==================== 指导老师管理 ====================
+
+  async getAdvisors(registrationId: number, userId: string) {
+    const registration = await this.registrationsRepository.findOne({
+      where: { id: registrationId, userId },
+    });
+    if (!registration) {
+      throw new NotFoundException('报名记录不存在');
+    }
+    return this.advisorRepository.find({
+      where: { registrationId },
+      order: { sortOrder: 'ASC', id: 'ASC' },
+    });
+  }
+
+  async updateAdvisors(registrationId: number, userId: string, dto: UpdateAdvisorsDto) {
+    const registration = await this.registrationsRepository.findOne({
+      where: { id: registrationId, userId },
+    });
+    if (!registration) {
+      throw new NotFoundException('报名记录不存在');
+    }
+
+    if (LOCKED_STATUSES.includes(registration.status)) {
+      throw new BadRequestException('当前状态不允许修改指导老师');
+    }
+
+    if (dto.advisors.length > 2) {
+      throw new BadRequestException('指导老师最多2位');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(Advisor, { registrationId });
+
+      if (dto.advisors.length > 0) {
+        const entities = dto.advisors.map((a, index) =>
+          manager.create(Advisor, {
+            registrationId,
+            name: a.name,
+            institution: a.institution,
+            title: a.title || undefined,
+            phone: a.phone,
+            email: a.email || undefined,
+            sortOrder: a.sortOrder ?? index,
+          }),
+        );
+        await manager.save(entities);
+      }
+    });
+
+    this.logger.log(`报名记录 ${registrationId} 指导老师已更新，共 ${dto.advisors.length} 位`);
+
+    return this.advisorRepository.find({
+      where: { registrationId },
+      order: { sortOrder: 'ASC', id: 'ASC' },
+    });
   }
 }

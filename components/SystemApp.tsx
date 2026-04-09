@@ -12,6 +12,8 @@ import AdminUsers from '../pages/AdminUsers';
 import AdminResources from '../pages/AdminResources';
 import AdminCompetitions from '../pages/AdminCompetitions';
 import AdminCompetitionDetail from '../pages/AdminCompetitionDetail';
+import JudgeDashboard from '../pages/JudgeDashboard';
+import JudgeScoring from '../pages/JudgeScoring';
 import AdminNews from '../pages/AdminNews';
 import { User, UserRegistration, RegistrationStatus } from '../types';
 import { Language } from '../i18n';
@@ -195,6 +197,12 @@ const SystemApp: React.FC<SystemAppProps> = ({ system }) => {
           <Route path="/admin/news" element={user?.role === 'admin' ? <AdminNews /> : <Navigate to="/" replace />} />
           <Route path="/admin/competitions" element={user?.role === 'admin' ? <AdminCompetitions /> : <Navigate to="/" replace />} />
           <Route path="/admin/competitions/:id" element={user?.role === 'admin' ? <AdminCompetitionDetail /> : <Navigate to="/" replace />} />
+          {system === 'contest' && (
+            <>
+              <Route path="/judge" element={user?.role === 'judge' || user?.role === 'admin' ? <JudgeDashboard /> : <Navigate to="/" replace />} />
+              <Route path="/judge/scoring/:competitionId" element={user?.role === 'judge' || user?.role === 'admin' ? <JudgeScoring /> : <Navigate to="/" replace />} />
+            </>
+          )}
         </Routes>
       </Layout>
     </SystemProvider>

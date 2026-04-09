@@ -5,6 +5,7 @@ import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { RejectSubmissionDto } from './dto/reject-submission.dto';
 import { UpdateTeamMembersDto } from './dto/update-team-members.dto';
+import { UpdateAdvisorsDto } from './dto/advisor.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { CurrentUser } from '@/common/decorators/user.decorator';
@@ -77,6 +78,25 @@ export class RegistrationsController {
     @Body() dto: UpdateTeamMembersDto,
   ) {
     return this.registrationsService.updateTeamMembers(id, userId, dto);
+  }
+
+  @Get(':id/advisors')
+  @ApiOperation({ summary: '获取指导老师列表' })
+  async getAdvisors(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('userId') userId: string,
+  ) {
+    return this.registrationsService.getAdvisors(id, userId);
+  }
+
+  @Put(':id/advisors')
+  @ApiOperation({ summary: '覆盖式更新指导老师列表（最多2位）' })
+  async updateAdvisors(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateAdvisorsDto,
+  ) {
+    return this.registrationsService.updateAdvisors(id, userId, dto);
   }
 
   @Get('check/:competitionId')

@@ -16,6 +16,7 @@ import { RegistrationPayment } from '../../payments/entities/registration-paymen
 import { PaperSubmission } from '../../papers/entities/paper-submission.entity';
 import { AwardRecord } from '../../awards/entities/award-record.entity';
 import { TeamMember } from './team-member.entity';
+import { Advisor } from './advisor.entity';
 
 @Entity('user_registrations')
 export class UserRegistration {
@@ -94,4 +95,7 @@ export class UserRegistration {
 
   @OneToMany(() => TeamMember, (member) => member.registration, { cascade: true })
   teamMembers: TeamMember[];
+
+  @OneToMany(() => Advisor, (advisor) => advisor.registration, { cascade: true })
+  advisors: Advisor[];
 }

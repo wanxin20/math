@@ -64,6 +64,9 @@ export class Competition {
   @Column({ name: 'max_team_size', nullable: true, comment: '竞赛组最多成员数（不含组长，仅 contest 系统使用）' })
   maxTeamSize: number;
 
+  @Column({ name: 'scoring_criteria', type: 'json', nullable: true, comment: '评分标准 JSON [{name,maxScore,description,weight}]' })
+  scoringCriteria: Array<{ name: string; maxScore: number; description?: string; weight?: number }> | null;
+
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 

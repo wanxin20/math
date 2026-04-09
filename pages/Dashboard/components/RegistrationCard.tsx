@@ -17,6 +17,7 @@ interface RegistrationCardProps {
   onDeleteSavedFile: (compId: string, fileIndex: number, fileName: string) => void;
   onViewPaper: (fileUrl: string) => void;
   onManageTeamMembers?: (registrationId: number) => void;
+  onManageAdvisors?: (registrationId: number) => void;
 }
 
 const RegistrationCard: React.FC<RegistrationCardProps> = ({
@@ -33,6 +34,7 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
   onDeleteSavedFile,
   onViewPaper,
   onManageTeamMembers,
+  onManageAdvisors,
 }) => {
   const deadline = reg.competition?.deadline;
   const isPastDeadline = deadline ? new Date(deadline) < new Date() : false;
@@ -150,6 +152,47 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
           ) : (
             <p className="text-xs text-gray-400 py-2">
               {lang === 'zh' ? '暂未添加成员，请点击"管理成员"添加' : 'No members yet. Click "Manage" to add.'}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* 指导老师（仅 contest 系统） */}
+      {system === 'contest' && (
+        <div className="mb-4 border border-gray-200 rounded-xl p-4 bg-white">
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-sm font-semibold text-gray-700">
+              <i className="fas fa-chalkboard-teacher mr-2 text-emerald-500"></i>
+              {lang === 'zh' ? '指导老师' : 'Advisors'}
+              <span className="text-gray-400 font-normal ml-1">(最多2位)</span>
+            </h4>
+            {onManageAdvisors && (
+              <button
+                onClick={() => onManageAdvisors(reg.id)}
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                <i className="fas fa-edit mr-1"></i>
+                {lang === 'zh' ? '管理' : 'Manage'}
+              </button>
+            )}
+          </div>
+          {reg.advisors && reg.advisors.length > 0 ? (
+            <div className="space-y-1">
+              {reg.advisors.map((a: any, i: number) => (
+                <div key={a.id || i} className="flex items-center gap-3 text-xs text-gray-600 py-1 border-b border-gray-100 last:border-0">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="font-medium text-gray-800">{a.name}</span>
+                  <span className="text-gray-400">{a.institution}</span>
+                  {a.title && <span className="text-gray-400">({a.title})</span>}
+                  <span className="text-gray-400"><i className="fas fa-phone text-[10px] mr-0.5"></i>{a.phone}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 py-2">
+              {lang === 'zh' ? '暂未添加指导老师' : 'No advisors yet.'}
             </p>
           )}
         </div>

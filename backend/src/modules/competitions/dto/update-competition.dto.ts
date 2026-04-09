@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsEnum, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsEnum, IsDateString, IsArray, ValidateNested, Allow } from 'class-validator';
 import { CompetitionStatus } from '@/common/enums/competition-status.enum';
 
 export class UpdateCompetitionDto {
@@ -62,4 +62,19 @@ export class UpdateCompetitionDto {
   @IsString()
   @IsOptional()
   problemAttachmentName?: string;
+
+  @ApiPropertyOptional({ description: '竞赛组最少成员数' })
+  @IsNumber()
+  @IsOptional()
+  minTeamSize?: number | null;
+
+  @ApiPropertyOptional({ description: '竞赛组最多成员数' })
+  @IsNumber()
+  @IsOptional()
+  maxTeamSize?: number | null;
+
+  @ApiPropertyOptional({ description: '评分标准 JSON' })
+  @IsOptional()
+  @Allow()
+  scoringCriteria?: Array<{ name: string; maxScore: number; description?: string; weight?: number }> | null;
 }

@@ -14,7 +14,8 @@ export const translations = {
       userMgmt: '用户管理',
       compMgmt: '竞赛管理',
       resMgmt: '资源管理',
-      newsMgmt: '公告管理'
+      newsMgmt: '公告管理',
+      judgeCenter: '评审中心'
     },
     home: {
       heroTitle: '展现数学思维,分享数学智慧',
@@ -126,7 +127,8 @@ export const translations = {
       userMgmt: 'User Management',
       compMgmt: 'Competition Management',
       resMgmt: 'Resource Management',
-      newsMgmt: 'News Management'
+      newsMgmt: 'News Management',
+      judgeCenter: 'Review Center'
     },
     home: {
       heroTitle: 'Enhance Mathematics Art, Share Wisdom',
