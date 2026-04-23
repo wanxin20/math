@@ -26,6 +26,11 @@ function sortedTeamMembers(members: TeamMember[] | undefined): TeamMember[] {
   return (members || []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
+/** 按 sortOrder 排序指导老师 */
+function sortedAdvisors(advisors: Advisor[] | undefined): Advisor[] {
+  return (advisors || []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
 /** 这些状态下不允许修改竞赛组成员 */
 const LOCKED_STATUSES: RegistrationStatus[] = [
   RegistrationStatus.UNDER_REVIEW,
@@ -143,6 +148,7 @@ export class RegistrationsService {
       payment: reg.payments?.[0],
       paperSubmission: reg.paperSubmission,
       teamMembers: sortedTeamMembers(reg.teamMembers),
+      advisors: sortedAdvisors(reg.advisors),
       rejectionReason: reg.rejectionReason,
     }));
   }
@@ -351,6 +357,7 @@ export class RegistrationsService {
       payment: reg.payments?.[0],
       paperSubmission: reg.paperSubmission,
       teamMembers: sortedTeamMembers(reg.teamMembers),
+      advisors: sortedAdvisors(reg.advisors),
       notes: reg.notes,
       needInvoice: reg.needInvoice,
       invoiceTitle: reg.invoiceTitle,
