@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
             {user && (
               <Link to={basePath + '/dashboard'} className={`text-sm font-medium transition ${isActive('/dashboard') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>{t.dashboard}</Link>
             )}
-            {system === 'contest' && user && (user.role === 'judge' || user.role === 'admin') && (
+            {user && (user.role === 'judge' || user.role === 'admin') && (
               <Link to={basePath + '/judge'} className={`text-sm font-medium transition ${isActive('/judge') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}>
                 评审中心
               </Link>
@@ -139,7 +139,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, lang, setLang
                     <i className="fas fa-user-circle w-8"></i>{t.dashboard}
                   </Link>
                 )}
-                {system === 'contest' && user && (user.role === 'judge' || user.role === 'admin') && (
+                {user && (user.role === 'judge' || user.role === 'admin') && (
                   <Link
                     to={basePath + '/judge'}
                     onClick={closeMenu}
