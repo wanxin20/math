@@ -433,10 +433,8 @@ const AdminCompetitionDetail: React.FC = () => {
         <div className="flex border-b border-gray-200 px-6">
           {([
             { key: 'registrations' as TabKey, label: '报名列表', icon: 'fa-list' },
-            ...(system === 'contest' ? [
-              { key: 'judges' as TabKey, label: '评委管理', icon: 'fa-gavel' },
-              { key: 'scores' as TabKey, label: '评分汇总', icon: 'fa-chart-bar' },
-            ] : []),
+            { key: 'judges' as TabKey, label: '评委管理', icon: 'fa-gavel' },
+            { key: 'scores' as TabKey, label: '评分汇总', icon: 'fa-chart-bar' },
           ]).map(tab => (
             <button
               key={tab.key}
