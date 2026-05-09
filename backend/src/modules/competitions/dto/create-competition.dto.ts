@@ -60,4 +60,14 @@ export class CreateCompetitionDto {
   @IsString()
   @IsOptional()
   problemAttachmentName?: string;
+
+  @ApiPropertyOptional({ description: '评审标准附件URL（评委可下载查看）' })
+  @IsString()
+  @IsOptional()
+  criteriaAttachmentUrl?: string;
+
+  @ApiPropertyOptional({ description: '评审标准附件原始文件名' })
+  @IsString()
+  @IsOptional()
+  criteriaAttachmentName?: string;
 }

@@ -14,6 +14,8 @@ const JudgeScoring: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [competitionTitle, setCompetitionTitle] = useState('');
   const [scoringCriteria, setScoringCriteria] = useState<ScoringCriteria[]>([]);
+  const [criteriaAttachmentUrl, setCriteriaAttachmentUrl] = useState<string>('');
+  const [criteriaAttachmentName, setCriteriaAttachmentName] = useState<string>('');
 
   // 评分弹窗状态
   const [scoringTarget, setScoringTarget] = useState<JudgeSubmission | null>(null);
@@ -36,6 +38,8 @@ const JudgeScoring: React.FC = () => {
       if (res.success && res.data) {
         setCompetitionTitle(res.data.competition?.title || '');
         setScoringCriteria(res.data.competition?.scoringCriteria || []);
+        setCriteriaAttachmentUrl(res.data.competition?.criteriaAttachmentUrl || '');
+        setCriteriaAttachmentName(res.data.competition?.criteriaAttachmentName || '');
         setSubmissions(res.data.submissions || []);
       }
     } catch (e) {
@@ -120,6 +124,20 @@ const JudgeScoring: React.FC = () => {
             <p className="text-sm text-gray-500 mt-1">
               共 {submissions.length} 份作品，已评 {scoredCount} 份
             </p>
+            {criteriaAttachmentUrl && (
+              <a
+                href={criteriaAttachmentUrl.startsWith('http')
+                  ? criteriaAttachmentUrl
+                  : `${API_BASE_URL.replace(/\/api\/v1$/, '')}${criteriaAttachmentUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium transition"
+              >
+                <i className="fas fa-file-alt"></i>
+                <span>查看评审标准原文</span>
+                <span className="text-xs text-emerald-500">{criteriaAttachmentName || '附件'}</span>
+              </a>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {(['all', 'unscored', 'scored'] as const).map(f => (

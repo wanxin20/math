@@ -89,6 +89,8 @@ export class ReviewsService {
           status: comp.status,
           deadline: comp.deadline,
           scoringCriteria: comp.scoringCriteria,
+          criteriaAttachmentUrl: comp.criteriaAttachmentUrl,
+          criteriaAttachmentName: comp.criteriaAttachmentName,
         },
         totalSubmissions: subCountMap.get(comp.id) || 0,
         scoredCount: scoredCountMap.get(comp.id) || 0,
@@ -129,6 +131,8 @@ export class ReviewsService {
         id: comp.id,
         title: comp.title,
         scoringCriteria: comp.scoringCriteria,
+        criteriaAttachmentUrl: comp.criteriaAttachmentUrl,
+        criteriaAttachmentName: comp.criteriaAttachmentName,
       },
       submissions: registrations.map((reg) => {
         const score = scoreMap.get(reg.id);

@@ -21,6 +21,8 @@ export interface Competition {
   coverImageUrl?: string;
   problemAttachmentUrl?: string;
   problemAttachmentName?: string;
+  criteriaAttachmentUrl?: string;
+  criteriaAttachmentName?: string;
 }
 
 export interface User {
@@ -84,6 +86,8 @@ export interface JudgeAssignedCompetition {
     status: string;
     deadline: string;
     scoringCriteria: ScoringCriteria[] | null;
+    criteriaAttachmentUrl?: string;
+    criteriaAttachmentName?: string;
   };
   totalSubmissions: number;
   scoredCount: number;

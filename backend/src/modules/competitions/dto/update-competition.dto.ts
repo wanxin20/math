@@ -77,4 +77,14 @@ export class UpdateCompetitionDto {
   @IsOptional()
   @Allow()
   scoringCriteria?: Array<{ name: string; maxScore: number; description?: string; weight?: number }> | null;
+
+  @ApiPropertyOptional({ description: '评审标准附件URL（评委可下载查看）' })
+  @IsString()
+  @IsOptional()
+  criteriaAttachmentUrl?: string;
+
+  @ApiPropertyOptional({ description: '评审标准附件原始文件名' })
+  @IsString()
+  @IsOptional()
+  criteriaAttachmentName?: string;
 }

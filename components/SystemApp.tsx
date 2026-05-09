@@ -197,12 +197,8 @@ const SystemApp: React.FC<SystemAppProps> = ({ system }) => {
           <Route path="/admin/news" element={user?.role === 'admin' ? <AdminNews /> : <Navigate to="/" replace />} />
           <Route path="/admin/competitions" element={user?.role === 'admin' ? <AdminCompetitions /> : <Navigate to="/" replace />} />
           <Route path="/admin/competitions/:id" element={user?.role === 'admin' ? <AdminCompetitionDetail /> : <Navigate to="/" replace />} />
-          {system === 'contest' && (
-            <>
-              <Route path="/judge" element={user?.role === 'judge' || user?.role === 'admin' ? <JudgeDashboard /> : <Navigate to="/" replace />} />
-              <Route path="/judge/scoring/:competitionId" element={user?.role === 'judge' || user?.role === 'admin' ? <JudgeScoring /> : <Navigate to="/" replace />} />
-            </>
-          )}
+          <Route path="/judge" element={user?.role === 'judge' || user?.role === 'admin' ? <JudgeDashboard /> : <Navigate to="/" replace />} />
+          <Route path="/judge/scoring/:competitionId" element={user?.role === 'judge' || user?.role === 'admin' ? <JudgeScoring /> : <Navigate to="/" replace />} />
         </Routes>
       </Layout>
     </SystemProvider>

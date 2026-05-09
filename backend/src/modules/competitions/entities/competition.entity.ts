@@ -67,6 +67,12 @@ export class Competition {
   @Column({ name: 'scoring_criteria', type: 'json', nullable: true, comment: '评分标准 JSON [{name,maxScore,description,weight}]' })
   scoringCriteria: Array<{ name: string; maxScore: number; description?: string; weight?: number }> | null;
 
+  @Column({ name: 'criteria_attachment_url', length: 1000, nullable: true, comment: '评审标准附件URL（评委可下载查看）' })
+  criteriaAttachmentUrl: string;
+
+  @Column({ name: 'criteria_attachment_name', length: 300, nullable: true, comment: '评审标准附件原始文件名' })
+  criteriaAttachmentName: string;
+
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 

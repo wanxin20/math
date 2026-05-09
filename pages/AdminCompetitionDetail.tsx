@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { judgeApi } from '../services/api';
@@ -50,6 +50,8 @@ interface Competition {
   currentParticipants: number;
   status: string;
   scoringCriteria?: ScoringCriteria[] | null;
+  criteriaAttachmentUrl?: string;
+  criteriaAttachmentName?: string;
 }
 
 interface AssignedJudge {
@@ -102,6 +104,12 @@ const AdminCompetitionDetail: React.FC = () => {
 
   // 评分汇总
   const [scoreSummary, setScoreSummary] = useState<ScoreSummaryItem[]>([]);
+
+  // 评审标准附件上传
+  const criteriaFileInputRef = useRef<HTMLInputElement>(null);
+  const [criteriaFileUploading, setCriteriaFileUploading] = useState(false);
+  const [criteriaFileProgress, setCriteriaFileProgress] = useState<number | null>(null);
+  const [criteriaFileError, setCriteriaFileError] = useState<string | null>(null);
 
   const closeDropdown = () => {
     setOpenDropdownRegId(null);
@@ -238,6 +246,54 @@ const AdminCompetitionDetail: React.FC = () => {
       alert(e.message || '保存失败');
     } finally {
       setSavingCriteria(false);
+    }
+  };
+
+  const handleUploadCriteriaFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setCriteriaFileError(null);
+    setCriteriaFileUploading(true);
+    setCriteriaFileProgress(0);
+    try {
+      const res = await api.upload.uploadFile(file, (pct) => setCriteriaFileProgress(pct));
+      if (res.success && res.data?.url) {
+        const upd = await api.competition.adminUpdate(id, {
+          criteriaAttachmentUrl: res.data.url,
+          criteriaAttachmentName: file.name,
+        });
+        if (upd.success) {
+          await loadData();
+        } else {
+          setCriteriaFileError(upd.message || '保存失败');
+        }
+      } else {
+        setCriteriaFileError(res.message || '上传失败，请重试');
+      }
+    } catch (err: any) {
+      setCriteriaFileError(err.message || '上传失败');
+    } finally {
+      setCriteriaFileUploading(false);
+      setCriteriaFileProgress(null);
+      if (criteriaFileInputRef.current) criteriaFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveCriteriaFile = async () => {
+    if (!id) return;
+    if (!confirm('确定移除评审标准附件？')) return;
+    try {
+      const upd = await api.competition.adminUpdate(id, {
+        criteriaAttachmentUrl: '',
+        criteriaAttachmentName: '',
+      });
+      if (upd.success) {
+        await loadData();
+      } else {
+        alert(upd.message || '移除失败');
+      }
+    } catch (err: any) {
+      alert(err.message || '移除失败');
     }
   };
 
@@ -438,6 +494,63 @@ const AdminCompetitionDetail: React.FC = () => {
                 <p>尚未设置评分标准，请点击"设置标准"进行配置</p>
               </div>
             )}
+
+            {/* 评审标准附件 */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800">
+                    <i className="fas fa-paperclip mr-2 text-indigo-500"></i>评审标准附件
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">上传 Word/PDF 评审指标原文，评委打分时可查看</p>
+                </div>
+                <input
+                  ref={criteriaFileInputRef}
+                  type="file"
+                  accept=".doc,.docx,.pdf"
+                  className="hidden"
+                  onChange={handleUploadCriteriaFile}
+                />
+                <button
+                  onClick={() => criteriaFileInputRef.current?.click()}
+                  disabled={criteriaFileUploading}
+                  className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 text-sm font-medium disabled:opacity-50"
+                >
+                  {criteriaFileUploading
+                    ? `上传中 ${criteriaFileProgress ?? 0}%`
+                    : competition?.criteriaAttachmentUrl ? '替换附件' : '上传附件'}
+                </button>
+              </div>
+              {competition?.criteriaAttachmentUrl ? (
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+                  <i className="fas fa-file-alt text-emerald-600 text-lg"></i>
+                  <span className="flex-1 text-sm text-emerald-800 truncate">
+                    {competition.criteriaAttachmentName || '附件'}
+                  </span>
+                  <a
+                    href={competition.criteriaAttachmentUrl.startsWith('http')
+                      ? competition.criteriaAttachmentUrl
+                      : `${API_BASE_URL.replace(/\/api\/v1$/, '')}${competition.criteriaAttachmentUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-100 rounded hover:bg-emerald-200"
+                  >
+                    预览
+                  </a>
+                  <button
+                    onClick={handleRemoveCriteriaFile}
+                    className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100"
+                  >
+                    移除
+                  </button>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-400 py-2">尚未上传附件</div>
+              )}
+              {criteriaFileError && (
+                <div className="mt-2 text-xs text-red-500">{criteriaFileError}</div>
+              )}
+            </div>
           </div>
 
           {/* 评委分配 */}
