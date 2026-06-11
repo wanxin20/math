@@ -14,7 +14,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NewsService } from './news.service';
 import { Public } from '@/common/decorators/public.decorator';
-import { PaginationDto } from '@/common/dto/pagination.dto';
+import { NewsListQueryDto } from './dto/news-list-query.dto';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { AdminGuard } from '@/common/guards/admin.guard';
@@ -28,20 +28,16 @@ export class NewsController {
   @Get()
   @Public()
   @ApiOperation({ summary: '获取已发布的新闻列表（公开，支持 type/search 过滤）' })
-  async findPublished(
-    @Query() paginationDto: PaginationDto,
-    @Query('type') type?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.newsService.findPublished({ ...paginationDto, type, search });
+  async findPublished(@Query() query: NewsListQueryDto) {
+    return this.newsService.findPublished(query);
   }
 
   @Get('admin/all')
   @UseGuards(AdminGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '管理员：获取所有新闻列表' })
-  async adminFindAll(@Query() paginationDto: PaginationDto & { search?: string }) {
-    return this.newsService.adminFindAll(paginationDto);
+  async adminFindAll(@Query() query: NewsListQueryDto) {
+    return this.newsService.adminFindAll(query);
   }
 
   @Get(':id')
