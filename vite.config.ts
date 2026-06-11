@@ -13,6 +13,12 @@ export default defineConfig(({ mode }) => {
             target: 'http://localhost:3000',
             changeOrigin: true,
           },
+          // 正文图片 URL 形如 /uploads/paper/images/xxx.jpg（生产由 nginx 解析）
+          '/uploads/paper': {
+            target: 'http://localhost:3000',
+            changeOrigin: true,
+            rewrite: (p) => p.replace(/^\/uploads\/paper/, '/uploads'),
+          },
         },
       },
       plugins: [react()],
