@@ -83,12 +83,12 @@ const NewsDetail: React.FC = () => {
   return (
     <PortalLayout>
       <div className="bg-gradient-to-r from-[#0f2a5c] via-blue-700 to-blue-500 text-white">
-        <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-6 text-2xl font-bold tracking-widest">
+        <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-8 text-[30px] font-bold tracking-widest">
           新闻中心
         </div>
       </div>
       <div className="bg-[#f3f7fc] border-b border-slate-200/70">
-        <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-3 text-[13px] text-slate-500">
+        <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-3.5 text-sm text-slate-500">
           当前位置：<Link to="/" className="text-blue-700 hover:underline">首页</Link>
           <span className="mx-1">›</span>
           <Link to="/news" className="text-blue-700 hover:underline">新闻中心</Link>
@@ -96,8 +96,8 @@ const NewsDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-6">
-        <div className="bg-white border border-slate-200 rounded-xl px-5 py-8 md:px-14 md:py-10">
+      <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-8">
+        <div className="bg-white border border-slate-200 rounded-xl px-5 py-8 md:px-20 md:py-12">
           {state.status === 'loading' && (
             <div className="py-24 text-center text-slate-400">加载中…</div>
           )}
@@ -125,10 +125,10 @@ const NewsDetail: React.FC = () => {
 
           {state.status === 'ok' && (
             <article>
-              <h1 className="text-xl md:text-[25px] font-extrabold text-slate-800 text-center leading-relaxed mb-4">
+              <h1 className="text-[22px] md:text-[28px] font-extrabold text-slate-800 text-center leading-relaxed mb-5">
                 {state.data.title}
               </h1>
-              <div className="text-center text-[13px] text-slate-400 pb-4 border-b border-slate-100 mb-6">
+              <div className="text-center text-sm text-slate-400 pb-5 border-b border-slate-100 mb-7">
                 <span>发布时间：{formatNewsDate(state.data).full}</span>
                 <span className="mx-2.5 text-slate-200">｜</span>
                 <span>来源：深圳市数学学会</span>
@@ -156,7 +156,7 @@ const NewsDetail: React.FC = () => {
                 </div>
               )}
 
-              <div className="mt-7 pt-4 border-t border-slate-100 text-sm leading-loose text-slate-600">
+              <div className="mt-8 pt-5 border-t border-slate-100 text-[15px] leading-loose text-slate-600">
                 <Link to="/news" className="float-right text-blue-700 font-semibold hover:underline">
                   返回列表 ›
                 </Link>

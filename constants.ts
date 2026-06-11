@@ -5,4 +5,4 @@ export const APP_NAME = '论文评选平台';
 
 // ===== 门户页脚配置（留空字符串则不显示对应内容）=====
 export const PORTAL_ICP_BEIAN = ''; // 例：'粤ICP备2026XXXXXX号'
-export const PORTAL_CONTACT_EMAIL = ''; // 例：'contact@szmath.com'
+export const PORTAL_CONTACT_EMAIL = 'szmath2025@163.com'; // 与系统内 Layout 页脚一致

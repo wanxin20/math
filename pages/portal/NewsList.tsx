@@ -79,12 +79,12 @@ const NewsList: React.FC = () => {
   return (
     <PortalLayout>
       <div className="bg-gradient-to-r from-[#0f2a5c] via-blue-700 to-blue-500 text-white">
-        <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-6 text-2xl font-bold tracking-widest">
+        <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-8 text-[30px] font-bold tracking-widest">
           新闻中心
         </div>
       </div>
       <div className="bg-[#f3f7fc] border-b border-slate-200/70">
-        <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-3 text-[13px] text-slate-500">
+        <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-3.5 text-sm text-slate-500">
           当前位置：<Link to="/" className="text-blue-700 hover:underline">首页</Link>
           <span className="mx-1">›</span>新闻中心
           <span className="mx-1">›</span>
@@ -92,20 +92,20 @@ const NewsList: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-5 items-start">
+      <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6 items-start">
           {/* 栏目侧边栏 */}
           <aside className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-            <div className="bg-gradient-to-br from-blue-700 to-blue-500 text-white text-[17px] font-bold px-5 py-4 tracking-wider">
+            <div className="bg-gradient-to-br from-blue-700 to-blue-500 text-white text-[19px] font-bold px-6 py-5 tracking-wider">
               新闻中心
             </div>
             {CATS.map((c) => (
               <button
                 key={c}
                 onClick={() => switchCat(c)}
-                className={`w-full flex items-center justify-between px-5 py-3.5 text-left text-[14.5px] border-b border-slate-100 transition ${
+                className={`w-full flex items-center justify-between px-6 py-4 text-left text-[15.5px] border-b border-slate-100 transition ${
                   !q && cat === c
-                    ? 'text-blue-700 font-bold bg-blue-50 border-l-4 border-l-blue-700 pl-4'
+                    ? 'text-blue-700 font-bold bg-blue-50 border-l-4 border-l-blue-700 pl-5'
                     : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
@@ -115,7 +115,7 @@ const NewsList: React.FC = () => {
           </aside>
 
           {/* 列表 */}
-          <section className="bg-white border border-slate-200 rounded-xl px-5 md:px-6 pb-5">
+          <section className="bg-white border border-slate-200 rounded-xl px-5 md:px-7 pb-6">
             {q && (
               <div className="flex items-center justify-between pt-4 text-sm text-slate-500">
                 <span>
@@ -143,17 +143,17 @@ const NewsList: React.FC = () => {
                   const d = formatNewsDate(n);
                   return (
                     <li key={n.id} className="border-b border-dashed border-slate-200 last:border-none">
-                      <Link to={`/news/${n.id}`} className="flex items-center gap-4 py-4 group">
-                        <span className="shrink-0 w-16 h-16 bg-[#f5f9ff] border border-blue-100 rounded-lg text-center text-blue-700">
-                          <span className="block text-2xl font-extrabold leading-tight mt-2">{d.day}</span>
-                          <span className="block text-[11px] text-blue-400">{d.yearMonth}</span>
+                      <Link to={`/news/${n.id}`} className="flex items-center gap-5 py-5 group">
+                        <span className="shrink-0 w-[72px] h-[72px] bg-[#f5f9ff] border border-blue-100 rounded-lg text-center text-blue-700">
+                          <span className="block text-[28px] font-extrabold leading-tight mt-2">{d.day}</span>
+                          <span className="block text-xs text-blue-400">{d.yearMonth}</span>
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-base text-slate-800 leading-relaxed group-hover:text-blue-700 transition">
+                          <span className="block truncate text-[17px] text-slate-800 leading-relaxed group-hover:text-blue-700 transition">
                             {n.title}
                           </span>
                           {n.summary && (
-                            <span className="block truncate text-[12.5px] text-slate-400 mt-1">
+                            <span className="block truncate text-sm text-slate-400 mt-1.5">
                               {n.summary}
                             </span>
                           )}
@@ -166,7 +166,7 @@ const NewsList: React.FC = () => {
             )}
 
             {!loading && !error && totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-4 text-[13px]">
+              <div className="flex items-center justify-center gap-2 pt-5 text-sm">
                 <button
                   disabled={page <= 1}
                   onClick={() => gotoPage(page - 1)}
