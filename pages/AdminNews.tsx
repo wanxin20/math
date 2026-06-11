@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { newsApi, uploadApi } from '../services/api';
+import { PORTAL_ARTICLE_CSS } from '../components/portal/portalStyles';
 
 interface News {
   id: number;
@@ -29,6 +30,10 @@ const AdminNews: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const emptyNews: Partial<News> = {
     title: '',
@@ -119,6 +124,50 @@ const AdminNews: React.FC = () => {
   const handleRemoveAttachment = () => {
     if (!editingNews) return;
     setEditingNews({ ...editingNews, attachmentUrl: undefined, attachmentName: undefined });
+  };
+
+  /** 在正文光标处插入 HTML 片段 */
+  const insertAtCursor = (snippet: string) => {
+    if (!editingNews) {
+      return;
+    }
+    const content = editingNews.content || '';
+    const ta = contentTextareaRef.current;
+    if (!ta) {
+      setEditingNews({ ...editingNews, content: content + snippet });
+      return;
+    }
+    const start = ta.selectionStart ?? content.length;
+    const end = ta.selectionEnd ?? content.length;
+    setEditingNews({
+      ...editingNews,
+      content: content.slice(0, start) + snippet + content.slice(end),
+    });
+  };
+
+  /** 上传图片并在光标处插入 <img> + 图注模板 */
+  const handleInsertImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingNews) {
+      return;
+    }
+    setImageUploading(true);
+    try {
+      const res = await uploadApi.uploadImage(file);
+      if (res.success && res.data?.url) {
+        insertAtCursor(`\n<img src="${res.data.url}" alt="" />\n<p class="fig-cap">图X&#12288;请替换为图注</p>\n`);
+      } else {
+        alert(res.message || '图片上传失败，请重试');
+      }
+    } catch (err) {
+      console.error('图片上传失败', err);
+      alert('图片上传失败，请重试');
+    } finally {
+      setImageUploading(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -517,10 +566,10 @@ const AdminNews: React.FC = () => {
                       outline: 'none',
                     }}
                   >
-                    <option value="notice">通知</option>
-                    <option value="news">新闻</option>
-                    <option value="announcement">公告</option>
-                    <option value="update">更新</option>
+                    <option value="notice">通知（门户·通知公告栏）</option>
+                    <option value="news">新闻（门户·新闻动态栏）</option>
+                    <option value="announcement">公告（门户·通知公告栏）</option>
+                    <option value="update">更新（门户·通知公告栏）</option>
                   </select>
                 </div>
                 <div>
@@ -572,7 +621,43 @@ const AdminNews: React.FC = () => {
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   内容 *
                 </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={imageUploading}
+                    style={{
+                      padding: '6px 14px', backgroundColor: '#eff6ff', color: '#1d4ed8',
+                      border: '1px solid #bfdbfe', borderRadius: '8px', fontSize: '13px',
+                      cursor: imageUploading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {imageUploading ? '上传中…' : '🖼 插入图片'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview((v) => !v)}
+                    style={{
+                      padding: '6px 14px', backgroundColor: showPreview ? '#1d4ed8' : '#f8fafc',
+                      color: showPreview ? '#fff' : '#475569', border: '1px solid #e2e8f0',
+                      borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
+                    }}
+                  >
+                    {showPreview ? '关闭预览' : '👁 预览'}
+                  </button>
+                  <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+                    支持 HTML；插入图片后请把图注模板里的「图X 请替换为图注」改成实际说明
+                  </span>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    style={{ display: 'none' }}
+                    onChange={handleInsertImage}
+                  />
+                </div>
                 <textarea
+                  ref={contentTextareaRef}
                   value={editingNews.content || ''}
                   onChange={(e) => setEditingNews({ ...editingNews, content: e.target.value })}
                   placeholder="请输入内容"
@@ -588,6 +673,15 @@ const AdminNews: React.FC = () => {
                     fontFamily: 'inherit',
                   }}
                 />
+                {showPreview && (
+                  <div style={{ marginTop: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', maxHeight: '420px', overflow: 'auto', background: '#fff' }}>
+                    <style>{PORTAL_ARTICLE_CSS}</style>
+                    <div
+                      className="portal-art-body"
+                      dangerouslySetInnerHTML={{ __html: editingNews.content || '<p style="color:#9ca3af">（暂无内容）</p>' }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* 附件上传 */}
