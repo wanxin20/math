@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NewsService } from './news.service';
@@ -26,9 +27,13 @@ export class NewsController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: '获取已发布的新闻列表（公开）' })
-  async findPublished(@Query() paginationDto: PaginationDto) {
-    return this.newsService.findPublished(paginationDto);
+  @ApiOperation({ summary: '获取已发布的新闻列表（公开，支持 type/search 过滤）' })
+  async findPublished(
+    @Query() paginationDto: PaginationDto,
+    @Query('type') type?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.newsService.findPublished({ ...paginationDto, type, search });
   }
 
   @Get('admin/all')
@@ -41,9 +46,13 @@ export class NewsController {
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: '获取新闻详情（公开）' })
+  @ApiOperation({ summary: '获取新闻详情（公开，仅已发布，含上一条/下一条）' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.newsService.findOne(id);
+    const news = await this.newsService.findOnePublic(id);
+    if (!news) {
+      throw new NotFoundException('文章不存在或已下线');
+    }
+    return news;
   }
 
   @Post()
