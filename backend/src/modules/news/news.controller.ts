@@ -9,11 +9,12 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NewsService } from './news.service';
 import { Public } from '@/common/decorators/public.decorator';
-import { PaginationDto } from '@/common/dto/pagination.dto';
+import { NewsListQueryDto } from './dto/news-list-query.dto';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { AdminGuard } from '@/common/guards/admin.guard';
@@ -26,24 +27,28 @@ export class NewsController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: '获取已发布的新闻列表（公开）' })
-  async findPublished(@Query() paginationDto: PaginationDto) {
-    return this.newsService.findPublished(paginationDto);
+  @ApiOperation({ summary: '获取已发布的新闻列表（公开，支持 type/search 过滤）' })
+  async findPublished(@Query() query: NewsListQueryDto) {
+    return this.newsService.findPublished(query);
   }
 
   @Get('admin/all')
   @UseGuards(AdminGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '管理员：获取所有新闻列表' })
-  async adminFindAll(@Query() paginationDto: PaginationDto & { search?: string }) {
-    return this.newsService.adminFindAll(paginationDto);
+  async adminFindAll(@Query() query: NewsListQueryDto) {
+    return this.newsService.adminFindAll(query);
   }
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: '获取新闻详情（公开）' })
+  @ApiOperation({ summary: '获取新闻详情（公开，仅已发布，含上一条/下一条）' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.newsService.findOne(id);
+    const news = await this.newsService.findOnePublic(id);
+    if (!news) {
+      throw new NotFoundException('文章不存在或已下线');
+    }
+    return news;
   }
 
   @Post()

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { NewsAnnouncement } from './entities/news-announcement.entity';
+import { Repository, Like, In, FindOptionsWhere } from 'typeorm';
+import { NewsAnnouncement, NewsType } from './entities/news-announcement.entity';
 import { PaginationDto, PaginatedResponseDto } from '@/common/dto/pagination.dto';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
@@ -17,12 +17,34 @@ export class NewsService {
 
   /**
    * 获取已发布的新闻列表（公开）
+   * @param type 逗号分隔的 NewsType 过滤（如 "news" 或 "notice,announcement,update"）
+   * @param search 标题模糊匹配
    */
-  async findPublished(paginationDto: PaginationDto) {
-    const { page = 1, pageSize = 10 } = paginationDto;
+  async findPublished(
+    paginationDto: PaginationDto & { type?: string; search?: string },
+  ) {
+    const { page = 1, pageSize = 10, type, search } = paginationDto;
+
+    const where: FindOptionsWhere<NewsAnnouncement> = { isPublished: true };
+
+    if (type) {
+      const validTypes = Object.values(NewsType) as string[];
+      const types = type
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t): t is NewsType => validTypes.includes(t));
+      if (types.length === 0) {
+        return new PaginatedResponseDto<NewsAnnouncement>([], 0, page, pageSize);
+      }
+      where.type = types.length === 1 ? types[0] : In(types);
+    }
+
+    if (search) {
+      where.title = Like(`%${search}%`);
+    }
 
     const [items, total] = await this.newsRepository.findAndCount({
-      where: { isPublished: true },
+      where,
       order: { publishDate: 'DESC', createdAt: 'DESC' },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -42,6 +64,34 @@ export class NewsService {
     }
 
     return news;
+  }
+
+  /**
+   * 门户公开详情：仅已发布；自增浏览量；附带上一条/下一条
+   *（按公开列表排序 publishDate DESC, createdAt DESC，上一条=更新的一条）
+   */
+  async findOnePublic(id: number) {
+    const news = await this.newsRepository.findOne({
+      where: { id, isPublished: true },
+    });
+    if (!news) return null;
+
+    await this.newsRepository.increment({ id }, 'viewCount', 1);
+    news.viewCount += 1;
+
+    const ordered = await this.newsRepository.find({
+      where: { isPublished: true },
+      order: { publishDate: 'DESC', createdAt: 'DESC' },
+      select: ['id', 'title'],
+    });
+    const idx = ordered.findIndex((n) => n.id === id);
+    const prev = idx > 0 ? { id: ordered[idx - 1].id, title: ordered[idx - 1].title } : null;
+    const next =
+      idx >= 0 && idx < ordered.length - 1
+        ? { id: ordered[idx + 1].id, title: ordered[idx + 1].title }
+        : null;
+
+    return { ...news, prev, next };
   }
 
   /**
