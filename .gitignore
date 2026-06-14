@@ -27,3 +27,5 @@ dist-ssr
 # Brainstorm visual companion & scratch
 .superpowers/
 .tmp-docx/
+.tmp-szmath/
+szmath_home.html
