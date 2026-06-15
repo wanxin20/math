@@ -20,6 +20,69 @@ interface RegistrationCardProps {
   onManageAdvisors?: (registrationId: number) => void;
 }
 
+// 接受的文件类型（与后端 upload.controller.ts 白名单保持一致）
+const ACCEPTED_FILE_TYPES =
+  '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.rtf,.csv,.json,.xml,' +
+  '.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.mp4,.mov,.avi,.mpeg,' +
+  '.zip,.rar,.7z,.gz,.tar,.tgz,.bz2,.xz,.zst,' +
+  '.py,.ipynb,.pth,.pt,.ckpt,.safetensors,.h5,.hdf5,.onnx,.bin,.pkl,.npy,.npz,.model';
+
+/** 人性化展示文件大小（B / KB / MB / GB） */
+const formatFileSize = (bytes?: number): string => {
+  if (!bytes || bytes <= 0) {
+    return '';
+  }
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i++;
+  }
+  return `${value.toFixed(i === 0 ? 0 : 1)}${units[i]}`;
+};
+
+/** 文件格式要求提示：竞赛(contest)系统额外说明代码 / 预训练权重的上传 */
+const FileFormatRequirements: React.FC<{ system: SystemType; lang: Language }> = ({ system, lang }) => (
+  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+    <p className="text-xs text-gray-700 mb-2">
+      <i className="fas fa-info-circle text-amber-600 mr-1"></i>
+      <span className="font-semibold text-amber-800">
+        {lang === 'zh' ? '文件格式要求：' : 'File Format Requirements:'}
+      </span>
+    </p>
+    {system === 'contest' ? (
+      <ul className="text-xs space-y-1 ml-5">
+        <li className="text-red-600 font-medium">
+          <i className="fas fa-circle text-[6px] mr-2"></i>
+          {lang === 'zh' ? '论文/报告：PDF 或 DOC/DOCX（必须上传）' : 'Paper/Report: PDF or DOC/DOCX (Required)'}
+        </li>
+        <li className="text-blue-600">
+          <i className="fas fa-circle text-[6px] mr-2"></i>
+          {lang === 'zh' ? '代码：打包为 .zip / .tar.gz 上传（选填）' : 'Code: packaged as .zip / .tar.gz (Optional)'}
+        </li>
+        <li className="text-blue-600">
+          <i className="fas fa-circle text-[6px] mr-2"></i>
+          {lang === 'zh'
+            ? '预训练权重：打包为 .zip / .tar.gz 上传，单个文件 ≤ 2GB（选填）'
+            : 'Pretrained weights: packaged as .zip / .tar.gz, ≤ 2GB each (Optional)'}
+        </li>
+      </ul>
+    ) : (
+      <ul className="text-xs space-y-1 ml-5">
+        <li className="text-red-600 font-medium">
+          <i className="fas fa-circle text-[6px] mr-2"></i>
+          {lang === 'zh' ? 'DOC/DOCX 版本稿件：必须上传' : 'DOC/DOCX version: Required'}
+        </li>
+        <li className="text-blue-600">
+          <i className="fas fa-circle text-[6px] mr-2"></i>
+          {lang === 'zh' ? 'PDF 版本稿件：建议上传' : 'PDF version: Recommended'}
+        </li>
+      </ul>
+    )}
+  </div>
+);
+
 const RegistrationCard: React.FC<RegistrationCardProps> = ({
   reg,
   regIndex,
@@ -275,7 +338,7 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                             <i className="fas fa-file-alt text-green-600 text-xs"></i>
                             <span className="text-xs text-gray-700 truncate">{file.fileName}</span>
                             {file.size && (
-                              <span className="text-xs text-gray-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                              <span className="text-xs text-gray-400">({formatFileSize(file.size)})</span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -329,24 +392,7 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                   )}
 
                   {/* 文件格式要求提示 */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="text-xs text-gray-700 mb-2">
-                      <i className="fas fa-info-circle text-amber-600 mr-1"></i>
-                      <span className="font-semibold text-amber-800">
-                        {lang === 'zh' ? '文件格式要求：' : 'File Format Requirements:'}
-                      </span>
-                    </p>
-                    <ul className="text-xs space-y-1 ml-5">
-                      <li className="text-red-600 font-medium">
-                        <i className="fas fa-circle text-[6px] mr-2"></i>
-                        {lang === 'zh' ? 'DOC/DOCX 版本稿件：必须上传' : 'DOC/DOCX version: Required'}
-                      </li>
-                      <li className="text-blue-600">
-                        <i className="fas fa-circle text-[6px] mr-2"></i>
-                        {lang === 'zh' ? 'PDF 版本稿件：建议上传' : 'PDF version: Recommended'}
-                      </li>
-                    </ul>
-                  </div>
+                  <FileFormatRequirements system={system} lang={lang} />
 
                   {/* 继续添加文件按钮 */}
                   <label className={`cursor-pointer bg-white border-2 border-blue-300 text-blue-600 px-6 py-2.5 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 hover:border-blue-400 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -354,7 +400,7 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                       type="file"
                       className="hidden"
                       multiple
-                      accept=".pdf,.doc,.docx,.zip,.rar,.7z,.txt,.md,.rtf,.xls,.xlsx,.ppt,.pptx,.csv,.json,.xml,.jpg,.jpeg,.png,.gif,.mp4,.mov"
+                      accept={ACCEPTED_FILE_TYPES}
                       disabled={submittingPaper || (currentProgress && currentProgress.length > 0)}
                       onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
                     />
@@ -407,31 +453,14 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                   )}
 
                   {/* 文件格式要求提示 */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="text-xs text-gray-700 mb-2">
-                      <i className="fas fa-info-circle text-amber-600 mr-1"></i>
-                      <span className="font-semibold text-amber-800">
-                        {lang === 'zh' ? '文件格式要求：' : 'File Format Requirements:'}
-                      </span>
-                    </p>
-                    <ul className="text-xs space-y-1 ml-5">
-                      <li className="text-red-600 font-medium">
-                        <i className="fas fa-circle text-[6px] mr-2"></i>
-                        {lang === 'zh' ? 'DOC/DOCX 版本稿件：必须上传' : 'DOC/DOCX version: Required'}
-                      </li>
-                      <li className="text-blue-600">
-                        <i className="fas fa-circle text-[6px] mr-2"></i>
-                        {lang === 'zh' ? 'PDF 版本稿件：建议上传' : 'PDF version: Recommended'}
-                      </li>
-                    </ul>
-                  </div>
+                  <FileFormatRequirements system={system} lang={lang} />
                   
                   <label className={`cursor-pointer bg-white border border-blue-200 text-blue-600 px-6 py-2 rounded-lg text-sm font-bold w-full text-center hover:bg-blue-50 transition block ${currentProgress && currentProgress.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                     <input
                       type="file"
                       className="hidden"
                       multiple
-                      accept=".pdf,.doc,.docx,.zip,.rar,.7z,.txt,.md,.rtf,.xls,.xlsx,.ppt,.pptx,.csv,.json,.xml,.jpg,.jpeg,.png,.gif,.mp4,.mov"
+                      accept={ACCEPTED_FILE_TYPES}
                       disabled={submittingPaper || (currentProgress && currentProgress.length > 0)}
                       onChange={(e) => { onPaperFilesSelected(reg.competitionId, e.target.files); e.target.value = ''; }}
                     />
@@ -473,7 +502,7 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                         <i className="fas fa-file-alt text-blue-600 text-xs"></i>
                         <span className="text-xs text-gray-700 truncate">{file.fileName}</span>
                         {file.size && (
-                          <span className="text-xs text-gray-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                          <span className="text-xs text-gray-400">({formatFileSize(file.size)})</span>
                         )}
                       </div>
                       <button
@@ -535,7 +564,7 @@ const RegistrationCard: React.FC<RegistrationCardProps> = ({
                         <i className="fas fa-file-alt text-green-600 text-xs"></i>
                         <span className="text-xs text-gray-700 truncate">{file.fileName}</span>
                         {file.size && (
-                          <span className="text-xs text-gray-400">({(file.size / 1024).toFixed(1)}KB)</span>
+                          <span className="text-xs text-gray-400">({formatFileSize(file.size)})</span>
                         )}
                       </div>
                       <button

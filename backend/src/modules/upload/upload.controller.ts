@@ -77,7 +77,7 @@ export class UploadController {
     FileInterceptor('file', {
       storage,
       limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB
+        fileSize: 2 * 1024 * 1024 * 1024, // 2GB（支持代码 / 预训练权重等大文件）
       },
       fileFilter: (req, file, cb) => {
         // 允许的文件类型（常见办公文档、压缩包、文本、图片、视频等）
@@ -104,6 +104,9 @@ export class UploadController {
           'application/gzip',
           'application/x-gzip',
           'application/x-tar',
+          'application/x-bzip2',
+          'application/x-xz',
+          'application/zstd',
           // 文本文件
           'text/plain',
           'text/markdown',
@@ -128,11 +131,20 @@ export class UploadController {
         ];
 
         const allowedExtensions = [
-          '.zip', '.rar', '.7z', '.gz', '.tar',
+          // 压缩包（代码 / 预训练权重打包后上传）
+          '.zip', '.rar', '.7z', '.gz', '.tar', '.tgz', '.bz2', '.xz', '.zst',
+          // 代码（允许未压缩直传）
+          '.py', '.ipynb',
+          // 预训练权重（允许未压缩直传）
+          '.pth', '.pt', '.ckpt', '.safetensors', '.h5', '.hdf5', '.onnx', '.bin', '.pkl', '.npy', '.npz', '.model',
+          // 办公文档
           '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
           '.txt', '.md', '.rtf', '.csv',
+          // 图片
           '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg',
+          // 视频
           '.mp4', '.mov', '.avi', '.mpeg',
+          // 其他
           '.json', '.xml',
         ];
         const ext = extname(file.originalname).toLowerCase();
