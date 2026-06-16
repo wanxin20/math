@@ -1,11 +1,16 @@
 import {
   Controller,
   Post,
+  Get,
+  Param,
+  Res,
   UploadedFile,
   UseInterceptors,
   UseGuards,
   BadRequestException,
+  NotFoundException,
   Req,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
@@ -13,16 +18,18 @@ import { ConfigService } from '@nestjs/config';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { unlink } from 'fs/promises';
+import { Request, Response } from 'express';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { Request } from 'express';
+import { OssService } from './oss.service';
 
-// 确保上传目录存在
+// 确保上传目录存在（OSS 启用时此目录仅作上传中转，上传成功后删除临时文件）
 const uploadDir = join(process.cwd(), 'uploads');
 if (!existsSync(uploadDir)) {
   mkdirSync(uploadDir, { recursive: true });
 }
 
-// 配置文件存储
+// 配置文件存储（始终先落本地磁盘，再决定是否转存 OSS —— 大文件可分片流式上传，内存友好）
 const storage = diskStorage({
   destination: (req, file, cb) => {
     const folder = file.mimetype.startsWith('image/') ? 'images' : 'files';
@@ -40,37 +47,103 @@ const storage = diskStorage({
   },
 });
 
+// OSS 对象键白名单校验，避免签名任意对象
+const SYSTEM_RE = /^[a-z]+$/;
+const FOLDER_RE = /^(images|files)$/;
+const FILENAME_RE = /^[A-Za-z0-9._-]+$/;
+
 @ApiTags('Upload')
 @Controller('upload')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT-auth')
 export class UploadController {
-  constructor(private configService: ConfigService) {}
+  private readonly logger = new Logger('UploadController');
+
+  constructor(
+    private configService: ConfigService,
+    private readonly oss: OssService,
+  ) {}
 
   /**
-   * 生成文件访问 URL
+   * 生成「本地磁盘存储」的文件访问 URL（旧逻辑，OSS 未启用时使用）
    * - 如果配置了 APP_URL，使用完整 URL（生产环境推荐）
    * - 否则使用相对路径（开发环境或 Nginx 反向代理）
    * - 会根据 SYSTEM_PREFIX 环境变量自动添加系统前缀（paper 或 reform）
    */
-  private getFileUrl(req: Request, relativePath: string): string {
+  private getFileUrl(relativePath: string): string {
     const appUrl = this.configService.get<string>('APP_URL');
     const systemPrefix = this.configService.get<string>('SYSTEM_PREFIX') || 'paper';
-    
+
     // 在 /uploads/ 后添加系统前缀
     // 例如：/uploads/images/xxx.jpg -> /uploads/paper/images/xxx.jpg
     const pathWithPrefix = relativePath.replace('/uploads/', `/uploads/${systemPrefix}/`);
-    
+
     if (appUrl) {
       // 使用配置的完整 URL（生产环境）
       return `${appUrl}${pathWithPrefix}`;
     }
-    
+
     // 使用相对路径（开发环境或 Nginx 代理）
-    // 前端会自动拼接当前域名
     return pathWithPrefix;
   }
+
+  /**
+   * 生成「OSS 存储」的稳定访问 URL（指向后端签名跳转接口，长期有效、不暴露 AK，
+   * 浏览器访问时后端再签发限时直链并 302 跳转到 OSS）
+   * 例：https://competition.szmath.com/api/v1/upload/oss/paper/images/xxx.png
+   */
+  private getOssUrl(key: string): string {
+    const appUrl = this.configService.get<string>('APP_URL') || '';
+    const apiPrefix = this.configService.get<string>('API_PREFIX') || 'api/v1';
+    return `${appUrl}/${apiPrefix}/upload/oss/${key}`;
+  }
+
+  /** 修复中文文件名编码（Windows 下 originalname 可能是 Latin1） */
+  private decodeName(originalname: string): string {
+    try {
+      return Buffer.from(originalname, 'latin1').toString('utf8');
+    } catch (error) {
+      this.logger.warn(`文件名编码转换失败，使用原始文件名: ${error}`);
+      return originalname;
+    }
+  }
+
+  /**
+   * 统一处理上传结果：OSS 启用则转存 OSS（成功后删除本地临时文件），否则回退本地磁盘。
+   */
+  private async finalize(file: Express.Multer.File, folder: 'images' | 'files') {
+    const originalName = this.decodeName(file.originalname);
+    let fileUrl: string;
+
+    if (this.oss.enabled) {
+      const systemPrefix = this.configService.get<string>('SYSTEM_PREFIX') || 'paper';
+      const key = `${systemPrefix}/${folder}/${file.filename}`;
+      try {
+        await this.oss.putFile(key, file.path, file.size);
+        fileUrl = this.getOssUrl(key);
+        // OSS 已保存，删除本地临时文件（失败仅告警，不影响主流程）
+        unlink(file.path).catch((e) =>
+          this.logger.warn(`删除本地临时文件失败 ${file.path}: ${e}`),
+        );
+      } catch (error) {
+        // OSS 异常时回退到本地磁盘存储，保证用户上传不丢失
+        this.logger.error(`OSS 上传失败，回退本地存储 (${key}): ${error}`);
+        fileUrl = this.getFileUrl(`/uploads/${folder}/${file.filename}`);
+      }
+    } else {
+      fileUrl = this.getFileUrl(`/uploads/${folder}/${file.filename}`);
+    }
+
+    return {
+      filename: file.filename,
+      originalname: originalName,
+      mimetype: file.mimetype,
+      size: file.size,
+      url: fileUrl,
+    };
+  }
+
   @Post('file')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '上传文件' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -157,37 +230,18 @@ export class UploadController {
       },
     }),
   )
-  async uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('请选择要上传的文件');
     }
-
     const folder = file.mimetype.startsWith('image/') ? 'images' : 'files';
-    const relativePath = `/uploads/${folder}/${file.filename}`;
-    const fileUrl = this.getFileUrl(req, relativePath);
-
-    // 修复中文文件名编码问题
-    // file.originalname在Windows下可能是Latin1编码，需要转换为UTF-8
-    let originalName = file.originalname;
-    try {
-      // 尝试将Latin1解码为UTF-8
-      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    } catch (error) {
-      // 如果转换失败，使用原始文件名
-      console.warn('文件名编码转换失败，使用原始文件名', error);
-    }
-
     // 直接返回数据对象，TransformInterceptor会自动包装
-    return {
-      filename: file.filename,
-      originalname: originalName,
-      mimetype: file.mimetype,
-      size: file.size,
-      url: fileUrl,
-    };
+    return this.finalize(file, folder);
   }
 
   @Post('image')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '上传图片' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -208,29 +262,35 @@ export class UploadController {
       },
     }),
   )
-  async uploadImage(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('请选择要上传的图片');
     }
-
-    const relativePath = `/uploads/images/${file.filename}`;
-    const fileUrl = this.getFileUrl(req, relativePath);
-
-    // 修复中文文件名编码问题
-    let originalName = file.originalname;
-    try {
-      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    } catch (error) {
-      console.warn('文件名编码转换失败，使用原始文件名', error);
-    }
-
     // 直接返回数据对象，TransformInterceptor会自动包装
-    return {
-      filename: file.filename,
-      originalname: originalName,
-      mimetype: file.mimetype,
-      size: file.size,
-      url: fileUrl,
-    };
+    return this.finalize(file, 'images');
+  }
+
+  /**
+   * OSS 文件访问入口（公开，无需登录，与原 nginx 静态 /uploads 行为一致）。
+   * 后端按对象键签发限时直链，并 302 跳转到 OSS（私有 bucket 文件不直接对外暴露）。
+   */
+  @Get('oss/:system/:folder/:filename')
+  @ApiOperation({ summary: '访问 OSS 文件（签名后跳转）' })
+  async getOssFile(
+    @Param('system') system: string,
+    @Param('folder') folder: string,
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
+    if (!this.oss.enabled) {
+      throw new NotFoundException('OSS 未启用');
+    }
+    // 严格校验，避免签名任意对象键
+    if (!SYSTEM_RE.test(system) || !FOLDER_RE.test(folder) || !FILENAME_RE.test(filename)) {
+      throw new BadRequestException('非法的文件路径');
+    }
+    const key = `${system}/${folder}/${filename}`;
+    const signed = this.oss.signUrl(key, 3600);
+    res.redirect(302, signed);
   }
 }
