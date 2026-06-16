@@ -6,10 +6,8 @@ import {
   Res,
   UploadedFile,
   UseInterceptors,
-  UseGuards,
   BadRequestException,
   NotFoundException,
-  Req,
   Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -19,8 +17,8 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { unlink } from 'fs/promises';
-import { Request, Response } from 'express';
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Response } from 'express';
+import { Public } from '@/common/decorators/public.decorator';
 import { OssService } from './oss.service';
 
 // 确保上传目录存在（OSS 启用时此目录仅作上传中转，上传成功后删除临时文件）
@@ -142,7 +140,6 @@ export class UploadController {
   }
 
   @Post('file')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '上传文件' })
   @ApiConsumes('multipart/form-data')
@@ -240,7 +237,6 @@ export class UploadController {
   }
 
   @Post('image')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '上传图片' })
   @ApiConsumes('multipart/form-data')
@@ -274,6 +270,7 @@ export class UploadController {
    * OSS 文件访问入口（公开，无需登录，与原 nginx 静态 /uploads 行为一致）。
    * 后端按对象键签发限时直链，并 302 跳转到 OSS（私有 bucket 文件不直接对外暴露）。
    */
+  @Public()
   @Get('oss/:system/:folder/:filename')
   @ApiOperation({ summary: '访问 OSS 文件（签名后跳转）' })
   async getOssFile(
