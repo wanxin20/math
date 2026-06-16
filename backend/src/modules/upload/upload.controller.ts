@@ -147,7 +147,7 @@ export class UploadController {
     FileInterceptor('file', {
       storage,
       limits: {
-        fileSize: 2 * 1024 * 1024 * 1024, // 2GB（支持代码 / 预训练权重等大文件）
+        fileSize: 5 * 1024 * 1024 * 1024, // 5GB（支持代码 / 预训练权重等大文件）
       },
       fileFilter: (req, file, cb) => {
         // 允许的文件类型（常见办公文档、压缩包、文本、图片、视频等）
