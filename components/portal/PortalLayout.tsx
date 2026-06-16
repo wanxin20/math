@@ -1,33 +1,26 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { PORTAL_ICP_BEIAN, PORTAL_CONTACT_EMAIL } from '../../constants';
 import { PORTAL_ARTICLE_CSS } from './portalStyles';
-import { SigmaIcon, SearchIcon } from './PortalIcons';
+import { SigmaIcon } from './PortalIcons';
 
-const NAV_ITEMS: { label: string; to: string; isActive: (path: string) => boolean }[] = [
+/** 学会官网（主站）地址——竞赛平台与主站互相跳转 */
+const SOCIETY_SITE_URL = 'https://www.szmath.com';
+
+const NAV_ITEMS: { label: string; to?: string; href?: string; isActive?: (path: string) => boolean }[] = [
   { label: '首页', to: '/', isActive: (p) => p === '/' },
-  { label: '新闻中心', to: '/news', isActive: (p) => p.startsWith('/news') },
   { label: '论文评选', to: '/paper', isActive: () => false },
   { label: '教师论文竞赛', to: '/reform', isActive: () => false },
   { label: '数智创新竞赛', to: '/contest', isActive: () => false },
+  { label: '学会官网', href: SOCIETY_SITE_URL },
 ];
 
 /**
- * 门户外壳：学会名称栏 + 蓝色导航 + 页脚。
- * 用于 / 、/news 、/news/:id（系统内部页面仍用各自 Layout）。
+ * 竞赛平台外壳：学会名称栏 + 蓝色导航 + 页脚。
+ * 用于 / 与 /scientist（系统内部页面仍用各自 Layout）。
  */
 const PortalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [keyword, setKeyword] = useState('');
-  // 搜索框只在新闻中心（列表/详情）显示
-  const showSearch = location.pathname.startsWith('/news');
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = keyword.trim();
-    navigate(q ? `/news?q=${encodeURIComponent(q)}` : '/news');
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f3f7fc]">
@@ -45,46 +38,39 @@ const PortalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                 深圳市数学学会
               </span>
               <span className="hidden sm:block text-[12px] text-slate-500 tracking-wider">
-                SHENZHEN MATHEMATICAL SOCIETY
+                竞赛服务平台 · COMPETITION PLATFORM
               </span>
             </span>
           </Link>
-          {showSearch && (
-            <form onSubmit={handleSearch} className="hidden md:flex items-center">
-              <input
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="搜索新闻标题"
-                className="w-52 border border-slate-300 border-r-0 rounded-l-full px-4 py-2 text-sm outline-none focus:border-blue-500"
-              />
-              <button
-                type="submit"
-                aria-label="搜索"
-                className="bg-blue-700 hover:bg-blue-800 text-white rounded-r-full px-4 py-[9px] transition"
-              >
-                <SearchIcon />
-              </button>
-            </form>
-          )}
         </div>
       </div>
 
       {/* 蓝色导航栏 */}
       <nav className="bg-blue-700">
         <div className="max-w-[1320px] mx-auto px-4 md:px-8 flex overflow-x-auto">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`shrink-0 px-6 md:px-8 py-3.5 text-base transition ${
-                item.isActive(location.pathname)
-                  ? 'bg-blue-800 text-white font-semibold'
-                  : 'text-blue-100 hover:bg-blue-800 hover:text-white'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {NAV_ITEMS.map((item) =>
+            item.to ? (
+              <Link
+                key={item.label}
+                to={item.to}
+                className={`shrink-0 px-6 md:px-8 py-3.5 text-base transition ${
+                  item.isActive?.(location.pathname)
+                    ? 'bg-blue-800 text-white font-semibold'
+                    : 'text-blue-100 hover:bg-blue-800 hover:text-white'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <a
+                key={item.label}
+                href={item.href}
+                className="shrink-0 px-6 md:px-8 py-3.5 text-base text-blue-100 hover:bg-blue-800 hover:text-white transition"
+              >
+                {item.label}
+              </a>
+            ),
+          )}
         </div>
       </nav>
 
@@ -99,7 +85,7 @@ const PortalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           </div>
           <div>
             <b className="block text-blue-100 text-base mb-2">快速链接</b>
-            <Link to="/news" className="hover:text-white">新闻中心</Link>
+            <a href={SOCIETY_SITE_URL} className="hover:text-white">学会官网</a>
             <span className="mx-2 opacity-40">/</span>
             <Link to="/paper" className="hover:text-white">论文评选</Link>
             <span className="mx-2 opacity-40">/</span>
