@@ -86,12 +86,14 @@ export class UploadController {
   /**
    * 生成「OSS 存储」的稳定访问 URL（指向后端签名跳转接口，长期有效、不暴露 AK，
    * 浏览器访问时后端再签发限时直链并 302 跳转到 OSS）
-   * 例：https://competition.szmath.com/api/v1/upload/oss/paper/images/xxx.png
+   * 注意：走 nginx 的 /api/{system}/ 反代（nginx 会把 /api/paper/ 重写到后端 /api/v1/），
+   * 与前端其它 API 路径一致；不能用 /api/v1/（nginx 未路由该前缀，会落到 SPA）。
+   * 例：https://competition.szmath.com/api/paper/upload/oss/paper/images/xxx.png
    */
   private getOssUrl(key: string): string {
     const appUrl = this.configService.get<string>('APP_URL') || '';
-    const apiPrefix = this.configService.get<string>('API_PREFIX') || 'api/v1';
-    return `${appUrl}/${apiPrefix}/upload/oss/${key}`;
+    const systemPrefix = this.configService.get<string>('SYSTEM_PREFIX') || 'paper';
+    return `${appUrl}/api/${systemPrefix}/upload/oss/${key}`;
   }
 
   /** 修复中文文件名编码（Windows 下 originalname 可能是 Latin1） */
