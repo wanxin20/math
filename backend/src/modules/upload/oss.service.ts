@@ -20,7 +20,6 @@ export class OssService {
   private readonly logger = new Logger('OssService');
   private uploadClient: any = null; // 内网 endpoint，用于上传
   private signClient: any = null; // 外网 endpoint，仅用于生成签名 URL
-  private bucketName = '';
 
   constructor(private readonly config: ConfigService) {
     const enabled = this.config.get<string>('OSS_ENABLED') === 'true';
@@ -44,8 +43,7 @@ export class OssService {
       return;
     }
 
-    this.bucketName = bucket;
-    // OSS_INTERNAL 默认 true（线上 ECS）；本地开发若需直传可设为 false
+    // OSS_INTERNAL 默认 true；ECS 与 bucket 跨区域时内网不通，需显式设为 false 走外网
     const useInternal = this.config.get<string>('OSS_INTERNAL') !== 'false';
     const common = { region, accessKeyId, accessKeySecret, bucket, secure: true };
 
@@ -60,10 +58,6 @@ export class OssService {
   /** OSS 是否可用 */
   get enabled(): boolean {
     return this.uploadClient !== null;
-  }
-
-  get bucket(): string {
-    return this.bucketName;
   }
 
   /**
@@ -93,10 +87,9 @@ export class OssService {
    * @param expiresSeconds 有效期（秒），默认 1 小时
    */
   signUrl(key: string, expiresSeconds = 3600): string {
-    const client = this.signClient || this.uploadClient;
-    if (!client) {
+    if (!this.signClient) {
       throw new Error('OSS 未启用');
     }
-    return client.signatureUrl(key, { expires: expiresSeconds });
+    return this.signClient.signatureUrl(key, { expires: expiresSeconds });
   }
 }

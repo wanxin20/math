@@ -5,6 +5,5 @@ import { OssService } from './oss.service';
 @Module({
   controllers: [UploadController],
   providers: [OssService],
-  exports: [OssService],
 })
 export class UploadModule {}

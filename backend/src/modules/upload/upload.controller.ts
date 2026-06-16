@@ -45,20 +45,29 @@ const storage = diskStorage({
   },
 });
 
+// 上传文件分类目录（单一来源：finalize 与 OSS 键校验共用）
+const FOLDERS = ['images', 'files'] as const;
+type Folder = (typeof FOLDERS)[number];
+
 // OSS 对象键白名单校验，避免签名任意对象
 const SYSTEM_RE = /^[a-z]+$/;
-const FOLDER_RE = /^(images|files)$/;
 const FILENAME_RE = /^[A-Za-z0-9._-]+$/;
 
 @ApiTags('Upload')
 @Controller('upload')
 export class UploadController {
   private readonly logger = new Logger('UploadController');
+  // 来自环境变量、运行期不变，构造时读一次即可（避免每次请求重复读取）
+  private readonly appUrl: string;
+  private readonly systemPrefix: string;
 
   constructor(
-    private configService: ConfigService,
+    configService: ConfigService,
     private readonly oss: OssService,
-  ) {}
+  ) {
+    this.appUrl = configService.get<string>('APP_URL') || '';
+    this.systemPrefix = configService.get<string>('SYSTEM_PREFIX') || 'paper';
+  }
 
   /**
    * 生成「本地磁盘存储」的文件访问 URL（旧逻辑，OSS 未启用时使用）
@@ -67,20 +76,12 @@ export class UploadController {
    * - 会根据 SYSTEM_PREFIX 环境变量自动添加系统前缀（paper 或 reform）
    */
   private getFileUrl(relativePath: string): string {
-    const appUrl = this.configService.get<string>('APP_URL');
-    const systemPrefix = this.configService.get<string>('SYSTEM_PREFIX') || 'paper';
-
     // 在 /uploads/ 后添加系统前缀
     // 例如：/uploads/images/xxx.jpg -> /uploads/paper/images/xxx.jpg
-    const pathWithPrefix = relativePath.replace('/uploads/', `/uploads/${systemPrefix}/`);
+    const pathWithPrefix = relativePath.replace('/uploads/', `/uploads/${this.systemPrefix}/`);
 
-    if (appUrl) {
-      // 使用配置的完整 URL（生产环境）
-      return `${appUrl}${pathWithPrefix}`;
-    }
-
-    // 使用相对路径（开发环境或 Nginx 代理）
-    return pathWithPrefix;
+    // 配置了 APP_URL 用完整 URL（生产环境），否则相对路径（开发环境/Nginx 代理）
+    return this.appUrl ? `${this.appUrl}${pathWithPrefix}` : pathWithPrefix;
   }
 
   /**
@@ -91,9 +92,7 @@ export class UploadController {
    * 例：https://competition.szmath.com/api/paper/upload/oss/paper/images/xxx.png
    */
   private getOssUrl(key: string): string {
-    const appUrl = this.configService.get<string>('APP_URL') || '';
-    const systemPrefix = this.configService.get<string>('SYSTEM_PREFIX') || 'paper';
-    return `${appUrl}/api/${systemPrefix}/upload/oss/${key}`;
+    return `${this.appUrl}/api/${this.systemPrefix}/upload/oss/${key}`;
   }
 
   /** 修复中文文件名编码（Windows 下 originalname 可能是 Latin1） */
@@ -109,13 +108,12 @@ export class UploadController {
   /**
    * 统一处理上传结果：OSS 启用则转存 OSS（成功后删除本地临时文件），否则回退本地磁盘。
    */
-  private async finalize(file: Express.Multer.File, folder: 'images' | 'files') {
+  private async finalize(file: Express.Multer.File, folder: Folder) {
     const originalName = this.decodeName(file.originalname);
     let fileUrl: string;
 
     if (this.oss.enabled) {
-      const systemPrefix = this.configService.get<string>('SYSTEM_PREFIX') || 'paper';
-      const key = `${systemPrefix}/${folder}/${file.filename}`;
+      const key = `${this.systemPrefix}/${folder}/${file.filename}`;
       try {
         await this.oss.putFile(key, file.path, file.size);
         fileUrl = this.getOssUrl(key);
@@ -285,7 +283,11 @@ export class UploadController {
       throw new NotFoundException('OSS 未启用');
     }
     // 严格校验，避免签名任意对象键
-    if (!SYSTEM_RE.test(system) || !FOLDER_RE.test(folder) || !FILENAME_RE.test(filename)) {
+    if (
+      !SYSTEM_RE.test(system) ||
+      !(FOLDERS as readonly string[]).includes(folder) ||
+      !FILENAME_RE.test(filename)
+    ) {
       throw new BadRequestException('非法的文件路径');
     }
     const key = `${system}/${folder}/${filename}`;
