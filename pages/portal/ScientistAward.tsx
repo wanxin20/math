@@ -13,53 +13,34 @@ import {
 
 const FORM1 = '/forms/深圳市数学学会2026年度大湾区青年科学家奖申报表.docx';
 const FORM2 = '/forms/深圳市数学学会会员申请表.doc';
-const EMAIL = 'szmath2025@163.com';
 const DEADLINE = '2026 年 7 月 13 日';
 
+type Cat = ScientistMaterial['category'];
+interface CatDef { key: Cat; label: string; desc: string; }
 
-interface MaterialCat {
-  key: ScientistMaterial['category'];
-  label: string;
-  desc: string;
-  memberOnly?: boolean;
-}
-const MATERIAL_CATS: MaterialCat[] = [
-  { key: 'form', label: '申报表', desc: '《青年科学家奖申报表》（必填）' },
+const AWARD_CATS: CatDef[] = [
+  { key: 'form', label: '《青年科学家奖申报表》', desc: '下载下方表格，填写并签字盖章后上传（必传）' },
   { key: 'certificate', label: '证件', desc: '身份证、毕业证、学位证、职称证（可多份）' },
   { key: 'papers', label: '代表性论文', desc: '不超过 5 篇代表性论文全文（可多份）' },
   { key: 'attachment', label: '其他附件', desc: '专利、软著、科研项目、奖励、成果转化/应用证明等（可多份）' },
-  { key: 'memberForm', label: '会员申请表', desc: '非学会会员请填写并上传《会员申请表》', memberOnly: true },
 ];
-
-type Form = {
-  name: string;
-  birthDate: string;
-  gender: string;
-  institution: string;
-  title: string;
-  phone: string;
-  email: string;
-  researchField: string;
-  isSocietyMember: boolean;
-  willingSponsorConference: boolean;
-  notes: string;
-};
-const EMPTY_FORM: Form = {
-  name: '', birthDate: '', gender: '', institution: '', title: '', phone: '',
-  email: '', researchField: '', isSocietyMember: false, willingSponsorConference: false, notes: '',
-};
+const MEMBER_CATS: CatDef[] = [
+  { key: 'memberForm', label: '《会员申请表》', desc: '非学会会员请下载填写后上传' },
+];
 
 const inputCls =
   'w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition';
 
 const ScientistAward: React.FC = () => {
   const [loggedIn, setLoggedIn] = useState<boolean>(!!getScientistToken());
-  const [form, setForm] = useState<Form>(EMPTY_FORM);
+  const [tab, setTab] = useState<'award' | 'member'>('award');
   const [materials, setMaterials] = useState<ScientistMaterial[]>([]);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [willing, setWilling] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [uploadingCat, setUploadingCat] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -68,50 +49,31 @@ const ScientistAward: React.FC = () => {
     return () => { document.title = prev; };
   }, []);
 
-  // 登录后：有申报记录则载入，否则用账号信息预填
+  // 登录后载入已有申报（若有）
   useEffect(() => {
     if (!loggedIn) return;
     (async () => {
       const r = await scientistApi.getMine();
       if (r.success && r.data) {
         const d: any = r.data;
-        setForm({
-          name: d.name || '', birthDate: d.birthDate || '', gender: d.gender || '',
-          institution: d.institution || '', title: d.title || '', phone: d.phone || '',
-          email: d.email || '', researchField: d.researchField || '',
-          isSocietyMember: !!d.isSocietyMember, willingSponsorConference: !!d.willingSponsorConference,
-          notes: d.notes || '',
-        });
         setMaterials(Array.isArray(d.materials) ? d.materials : []);
+        setWilling(!!d.willingSponsorConference);
         setAlreadySubmitted(true);
-      } else {
-        const u = getScientistUser();
-        setForm((f) => ({
-          ...f,
-          name: u?.name || '', email: u?.email || '',
-          institution: u?.institution || '', title: u?.title || '', phone: u?.phone || '',
-        }));
       }
     })();
   }, [loggedIn]);
 
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
-
-  const handleUpload = async (cat: ScientistMaterial['category'], files: FileList | null) => {
+  const handleUpload = async (cat: Cat, files: FileList | null) => {
     if (!files || !files.length) return;
     setUploadingCat(cat);
     setMsg(null);
     for (const file of Array.from(files)) {
       const r = await scientistUploadFile(file);
       if (r.success && r.data) {
-        const item: ScientistMaterial = {
-          category: cat,
-          fileName: r.data.originalname || r.data.filename,
-          fileUrl: r.data.url,
-          size: r.data.size,
-          mimetype: r.data.mimetype,
-        };
-        setMaterials((m) => [...m, item]);
+        setMaterials((m) => [
+          ...m,
+          { category: cat, fileName: r.data!.originalname || r.data!.filename, fileUrl: r.data!.url, size: r.data!.size, mimetype: r.data!.mimetype },
+        ]);
       } else {
         setMsg({ type: 'err', text: `「${file.name}」上传失败：${r.message || ''}` });
       }
@@ -121,20 +83,32 @@ const ScientistAward: React.FC = () => {
 
   const removeMaterial = (idx: number) => setMaterials((m) => m.filter((_, i) => i !== idx));
 
-  const handleSubmit = async () => {
-    if (!form.name.trim() || !form.institution.trim() || !form.phone.trim() || !form.email.trim()) {
-      setMsg({ type: 'err', text: '请填写姓名、工作单位、手机、邮箱。' });
-      return;
-    }
+  // 点提交 → 先弹"是否愿意赞助协办"确认
+  const openConfirm = () => {
     if (!materials.some((m) => m.category === 'form')) {
-      setMsg({ type: 'err', text: '请上传《青年科学家奖申报表》。' });
+      setMsg({ type: 'err', text: '请先在「奖项申报」上传填好的《青年科学家奖申报表》。' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    setSubmitting(true);
     setMsg(null);
-    const payload = { ...form, materials };
+    setShowConfirm(true);
+  };
+
+  const doSubmit = async () => {
+    const u: any = getScientistUser() || {};
+    setSubmitting(true);
+    const payload = {
+      name: u.name || '',
+      email: u.email || '',
+      phone: u.phone || '',
+      institution: u.institution || '',
+      title: u.title || undefined,
+      willingSponsorConference: willing,
+      materials,
+    };
     const r = alreadySubmitted ? await scientistApi.update(payload) : await scientistApi.submit(payload);
     setSubmitting(false);
+    setShowConfirm(false);
     if (r.success) {
       setAlreadySubmitted(true);
       setMsg({ type: 'ok', text: alreadySubmitted ? '已更新申报材料。' : '申报提交成功！如需修改可随时回到本页更新。' });
@@ -147,13 +121,15 @@ const ScientistAward: React.FC = () => {
   const logout = () => {
     clearScientistAuth();
     setLoggedIn(false);
-    setForm(EMPTY_FORM);
     setMaterials([]);
     setAlreadySubmitted(false);
+    setWilling(false);
     setMsg(null);
   };
 
-  const cats = MATERIAL_CATS.filter((c) => !c.memberOnly || !form.isSocietyMember);
+  const cats = tab === 'award' ? AWARD_CATS : MEMBER_CATS;
+  const downloadHref = tab === 'award' ? FORM1 : FORM2;
+  const downloadText = tab === 'award' ? '下载《青年科学家奖申报表》（.docx）' : '下载《会员申请表》（.doc）';
 
   return (
     <PortalLayout>
@@ -177,7 +153,6 @@ const ScientistAward: React.FC = () => {
           }`}>{msg.text}</div>
         )}
 
-        {/* 在线申报区 */}
         <div className="bg-white border-2 border-blue-200 rounded-xl p-6 md:p-7 mb-7">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h2 className="text-lg font-bold text-[#0f2a5c] flex items-center gap-2">
@@ -189,7 +164,10 @@ const ScientistAward: React.FC = () => {
             )}
           </div>
 
-          <p className="text-[13px] text-slate-500 mb-5">请于 <strong className="text-red-600">{DEADLINE}</strong> 前完成在线申报与材料提交。</p>
+          <p className="text-[13px] text-slate-500 mb-5">
+            注册/登录后，<strong>下载表格 → 填写（签字盖章）→ 上传</strong>，最后点击提交。请于
+            <strong className="text-red-600 mx-1">{DEADLINE}</strong>前完成。
+          </p>
 
           {!loggedIn ? (
             <AuthPanel onLoggedIn={() => setLoggedIn(true)} />
@@ -197,37 +175,35 @@ const ScientistAward: React.FC = () => {
             <div>
               {alreadySubmitted && (
                 <div className="mb-5 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2.5 text-sm text-blue-700">
-                  您已提交申报，可在下方修改后重新提交（截止 {DEADLINE}）。
+                  您已提交申报，可在下方增删材料后重新提交（截止 {DEADLINE}）。
                 </div>
               )}
-              {/* 申报人信息 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="姓名" required><input className={inputCls} value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
-                <Field label="出生年月"><input type="month" className={inputCls} value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} /></Field>
-                <Field label="性别">
-                  <select className={inputCls} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
-                    <option value="">请选择</option><option value="男">男</option><option value="女">女</option>
-                  </select>
-                </Field>
-                <Field label="工作单位" required><input className={inputCls} value={form.institution} onChange={(e) => set('institution', e.target.value)} /></Field>
-                <Field label="职称/职务"><input className={inputCls} value={form.title} onChange={(e) => set('title', e.target.value)} /></Field>
-                <Field label="研究方向"><input className={inputCls} value={form.researchField} onChange={(e) => set('researchField', e.target.value)} /></Field>
-                <Field label="手机" required><input className={inputCls} value={form.phone} onChange={(e) => set('phone', e.target.value)} /></Field>
-                <Field label="邮箱" required><input type="email" className={inputCls} value={form.email} onChange={(e) => set('email', e.target.value)} /></Field>
+
+              {/* Tab：奖项申报 / 入会申请 */}
+              <div className="flex gap-1 mb-5 bg-slate-100 rounded-lg p-1 text-sm w-fit">
+                {([['award', '奖项申报'], ['member', '入会申请']] as const).map(([k, l]) => (
+                  <button
+                    key={k}
+                    onClick={() => setTab(k)}
+                    className={`px-5 py-1.5 rounded-md font-medium transition ${tab === k ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    {l}
+                  </button>
+                ))}
               </div>
 
-              <label className="flex items-center gap-2.5 mt-4 text-sm text-slate-700 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-blue-600" checked={form.isSocietyMember} onChange={(e) => set('isSocietyMember', e.target.checked)} />
-                本人已是深圳市数学学会会员（非会员请在下方上传《会员申请表》）
-              </label>
-              <label className="flex items-start gap-2.5 mt-3 text-sm text-slate-700 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 mt-0.5 accent-blue-600" checked={form.willingSponsorConference} onChange={(e) => set('willingSponsorConference', e.target.checked)} />
-                <span>本人愿意赞助、参与、协办深圳市数学学会举办的学术会议</span>
-              </label>
+              {/* 下载该 Tab 对应表格 */}
+              <div className="mb-5 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3.5 flex items-center justify-between flex-wrap gap-3">
+                <span className="text-[13px] text-slate-500">
+                  {tab === 'award' ? '请先下载申报表，填写并签字盖章后在下方上传。' : '非学会会员请下载会员申请表，填写后在下方上传。'}
+                </span>
+                <a href={downloadHref} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg px-4 py-2 text-[13px] font-semibold transition shrink-0">
+                  {downloadText}
+                </a>
+              </div>
 
-              {/* 材料上传 */}
-              <h3 className="text-[15px] font-bold text-[#0f2a5c] mt-7 mb-1">申报材料上传</h3>
-              <p className="text-xs text-slate-400 mb-4">单个文件最大 5GB；支持 PDF/Word/图片/压缩包等。</p>
+              {/* 上传区 */}
               <div className="space-y-4">
                 {cats.map((cat) => {
                   const items = materials.map((m, i) => ({ m, i })).filter((x) => x.m.category === cat.key);
@@ -259,41 +235,37 @@ const ScientistAward: React.FC = () => {
                 })}
               </div>
 
-              <Field label="备注（选填）" className="mt-4">
-                <textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
-              </Field>
-
-              <button onClick={handleSubmit} disabled={submitting}
-                className="mt-6 w-full md:w-auto inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white rounded-lg px-8 py-3 text-sm font-semibold transition">
-                {submitting ? '提交中…' : alreadySubmitted ? '更新申报' : '提交申报'}
+              <button onClick={openConfirm}
+                className="mt-6 w-full md:w-auto inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg px-8 py-3 text-sm font-semibold transition">
+                {alreadySubmitted ? '更新申报' : '提交申报'}
               </button>
             </div>
           )}
         </div>
+      </div>
 
-        {/* 空白表格下载 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 md:p-7 mb-7">
-          <h2 className="text-base font-bold text-[#0f2a5c] mb-3">空白表格下载</h2>
-          <p className="text-sm text-slate-500 mb-4">下载填写后，在上方"在线申报"对应类别上传；也可整理为电子版发送至学会邮箱 <a href={`mailto:${EMAIL}`} className="text-blue-700 hover:underline">{EMAIL}</a>（联系人：王老师）。</p>
-          <div className="flex flex-wrap gap-3">
-            <a href={FORM1} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition">下载申报表（.docx）</a>
-            <a href={FORM2} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 rounded-lg px-5 py-2.5 text-sm font-semibold transition">下载会员申请表（.doc）</a>
+      {/* 提交确认：是否愿意赞助/协办学术会议 */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowConfirm(false)}>
+          <div className="bg-white rounded-xl max-w-md w-full p-6 md:p-7" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-[#0f2a5c] mb-4">提交确认</h3>
+            <label className="flex items-start gap-2.5 text-sm text-slate-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-lg p-3.5">
+              <input type="checkbox" className="w-4 h-4 mt-0.5 accent-blue-600" checked={willing} onChange={(e) => setWilling(e.target.checked)} />
+              <span>本人愿意赞助、参与、协办深圳市数学学会举办的学术会议。</span>
+            </label>
+            <div className="flex justify-end gap-3 mt-5">
+              <button onClick={() => setShowConfirm(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700">取消</button>
+              <button onClick={doSubmit} disabled={submitting}
+                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white rounded-lg px-6 py-2 text-sm font-semibold">
+                {submitting ? '提交中…' : '确认提交'}
+              </button>
+            </div>
           </div>
         </div>
-
-      </div>
+      )}
     </PortalLayout>
   );
 };
-
-const Field: React.FC<{ label: string; required?: boolean; className?: string; children: React.ReactNode }> = ({ label, required, className, children }) => (
-  <div className={className}>
-    <label className="block text-xs font-semibold text-slate-500 mb-1.5">
-      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-    </label>
-    {children}
-  </div>
-);
 
 /** 登录 / 注册（沿用 paper 论文评选账号体系） */
 const AuthPanel: React.FC<{ onLoggedIn: () => void }> = ({ onLoggedIn }) => {
@@ -383,7 +355,7 @@ const AuthPanel: React.FC<{ onLoggedIn: () => void }> = ({ onLoggedIn }) => {
           {busy ? '处理中…' : mode === 'login' ? '登录' : '注册并进入申报'}
         </button>
       </div>
-      <p className="mt-3 text-xs text-slate-400">登录后即可填写申报表并上传材料。</p>
+      <p className="mt-3 text-xs text-slate-400">登录后即可下载表格、上传材料并提交申报。</p>
     </div>
   );
 };
