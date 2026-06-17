@@ -423,7 +423,7 @@ const AuthPanel: React.FC<{ onLoggedIn: () => void }> = ({ onLoggedIn }) => {
           {busy ? '处理中…' : mode === 'login' ? '登录' : '注册并进入申报'}
         </button>
       </div>
-      <p className="mt-3 text-xs text-slate-400">登录后即可填写申报表并上传材料；账号与"论文评选"系统通用。</p>
+      <p className="mt-3 text-xs text-slate-400">登录后即可填写申报表并上传材料。</p>
     </div>
   );
 };
