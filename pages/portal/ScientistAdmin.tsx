@@ -100,8 +100,8 @@ const ScientistAdmin: React.FC = () => {
                   <tr className="text-left text-slate-500 border-b border-slate-100 bg-slate-50">
                     <th className="px-4 py-3 font-semibold">姓名</th>
                     <th className="px-4 py-3 font-semibold">工作单位</th>
+                    <th className="px-4 py-3 font-semibold">邮箱</th>
                     <th className="px-4 py-3 font-semibold">手机</th>
-                    <th className="px-4 py-3 font-semibold">会员</th>
                     <th className="px-4 py-3 font-semibold">愿协办</th>
                     <th className="px-4 py-3 font-semibold">材料</th>
                     <th className="px-4 py-3 font-semibold">提交时间</th>
@@ -115,8 +115,8 @@ const ScientistAdmin: React.FC = () => {
                     <tr key={a.id} className="border-b border-slate-50 hover:bg-blue-50/40">
                       <td className="px-4 py-3 font-medium text-slate-800">{a.name}</td>
                       <td className="px-4 py-3 text-slate-600">{a.institution}</td>
+                      <td className="px-4 py-3 text-slate-500">{a.email}</td>
                       <td className="px-4 py-3 text-slate-600">{a.phone}</td>
-                      <td className="px-4 py-3">{a.isSocietyMember ? '是' : '否'}</td>
                       <td className="px-4 py-3">{a.willingSponsorConference ? '是' : '否'}</td>
                       <td className="px-4 py-3 text-slate-500">{(a.materials || []).length} 个</td>
                       <td className="px-4 py-3 text-slate-400 text-xs">{a.createdAt ? new Date(a.createdAt).toLocaleString('zh-CN', { hour12: false }) : ''}</td>
@@ -140,10 +140,9 @@ const ScientistAdmin: React.FC = () => {
             </div>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
               {[
-                ['姓名', detail.name], ['性别', detail.gender], ['出生年月', detail.birthDate],
-                ['工作单位', detail.institution], ['职称/职务', detail.title], ['手机', detail.phone],
-                ['邮箱', detail.email], ['研究方向', detail.researchField],
-                ['学会会员', detail.isSocietyMember ? '是' : '否'],
+                ['姓名', detail.name],
+                ['工作单位', detail.institution], ['职称/职务', detail.title],
+                ['手机', detail.phone], ['邮箱', detail.email],
                 ['愿赞助/协办会议', detail.willingSponsorConference ? '是' : '否'],
               ].map(([k, v]) => (
                 <div key={k as string}><dt className="text-slate-400 text-xs">{k}</dt><dd className="text-slate-800">{(v as string) || '—'}</dd></div>

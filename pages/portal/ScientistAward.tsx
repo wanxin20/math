@@ -135,7 +135,7 @@ const ScientistAward: React.FC = () => {
     <PortalLayout>
       {/* 横幅 */}
       <div className="bg-gradient-to-r from-[#0f2a5c] via-blue-700 to-blue-500 text-white">
-        <div className="max-w-[1000px] mx-auto px-4 md:px-8 py-9">
+        <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-9">
           <div className="text-[13px] text-blue-200 mb-2">
             <Link to="/" className="hover:text-white">首页</Link>
             <span className="mx-1.5 opacity-60">›</span>青年科学家奖评选
@@ -146,28 +146,42 @@ const ScientistAward: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-[1000px] mx-auto px-4 md:px-8 py-8">
+      <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8">
         {msg && (
           <div className={`mb-5 rounded-lg px-4 py-3 text-sm border ${
             msg.type === 'ok' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'
           }`}>{msg.text}</div>
         )}
 
-        <div className="bg-white border-2 border-blue-200 rounded-xl p-6 md:p-7 mb-7">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 className="text-lg font-bold text-[#0f2a5c] flex items-center gap-2">
-              <span className="w-1.5 h-5 rounded bg-blue-700 inline-block" />
+        <div className="bg-white border-2 border-blue-200 rounded-2xl p-7 md:p-10 mb-7">
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+            <h2 className="text-xl md:text-2xl font-bold text-[#0f2a5c] flex items-center gap-2.5">
+              <span className="w-1.5 h-6 rounded bg-blue-700 inline-block" />
               在线申报
             </h2>
             {loggedIn && (
-              <button onClick={logout} className="text-[13px] text-slate-400 hover:text-blue-700">退出登录</button>
+              <button onClick={logout} className="text-sm text-slate-400 hover:text-blue-700">退出登录</button>
             )}
           </div>
 
-          <p className="text-[13px] text-slate-500 mb-5">
-            注册/登录后，<strong>下载表格 → 填写（签字盖章）→ 上传</strong>，最后点击提交。请于
-            <strong className="text-red-600 mx-1">{DEADLINE}</strong>前完成。
+          <p className="text-sm text-slate-500 mb-6">
+            请于 <strong className="text-red-600">{DEADLINE}</strong> 前完成在线提交。
           </p>
+
+          {/* 申报流程 */}
+          <div className="grid grid-cols-3 gap-3 md:gap-4 mb-7">
+            {[
+              ['1', '注册 / 登录', '用论文评选账号'],
+              ['2', '下载并填写表格', '填好后签字盖章'],
+              ['3', '上传材料并提交', '确认后完成申报'],
+            ].map(([n, t, d]) => (
+              <div key={n} className="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5 text-center">
+                <div className="w-9 h-9 md:w-10 md:h-10 mx-auto mb-2.5 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold">{n}</div>
+                <div className="text-sm md:text-[15px] font-semibold text-slate-800">{t}</div>
+                <div className="text-xs text-slate-400 mt-1">{d}</div>
+              </div>
+            ))}
+          </div>
 
           {!loggedIn ? (
             <AuthPanel onLoggedIn={() => setLoggedIn(true)} />
@@ -204,11 +218,11 @@ const ScientistAward: React.FC = () => {
               </div>
 
               {/* 上传区 */}
-              <div className="space-y-4">
+              <div className={`grid gap-4 ${tab === 'award' ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
                 {cats.map((cat) => {
                   const items = materials.map((m, i) => ({ m, i })).filter((x) => x.m.category === cat.key);
                   return (
-                    <div key={cat.key} className="border border-slate-200 rounded-lg p-4">
+                    <div key={cat.key} className="border border-slate-200 rounded-xl p-5">
                       <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                         <div>
                           <span className="text-sm font-semibold text-slate-800">{cat.label}</span>
@@ -236,7 +250,7 @@ const ScientistAward: React.FC = () => {
               </div>
 
               <button onClick={openConfirm}
-                className="mt-6 w-full md:w-auto inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg px-8 py-3 text-sm font-semibold transition">
+                className="mt-7 w-full md:w-auto inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl px-12 py-3.5 text-base font-semibold transition shadow-lg shadow-blue-700/20">
                 {alreadySubmitted ? '更新申报' : '提交申报'}
               </button>
             </div>
