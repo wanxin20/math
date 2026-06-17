@@ -64,8 +64,8 @@ const FileFormatRequirements: React.FC<{ system: SystemType; lang: Language }> =
         <li className="text-blue-600">
           <i className="fas fa-circle text-[6px] mr-2"></i>
           {lang === 'zh'
-            ? '预训练权重：打包为 .zip / .tar.gz 上传，单个文件 ≤ 2GB（选填）'
-            : 'Pretrained weights: packaged as .zip / .tar.gz, ≤ 2GB each (Optional)'}
+            ? '预训练权重：打包为 .zip / .tar.gz 上传，单个文件 ≤ 5GB（选填）'
+            : 'Pretrained weights: packaged as .zip / .tar.gz, ≤ 5GB each (Optional)'}
         </li>
       </ul>
     ) : (
