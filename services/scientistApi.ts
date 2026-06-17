@@ -1,14 +1,14 @@
 // 青年科学家奖评选 —— 专用 API 客户端。
-// 该功能在平台首页是独立入口（顶层路由 /scientist），不在 /contest 的 SystemApp 内，
-// 故无法靠 URL hash 推断系统；这里**固定指向 contest 系统**（账号/Token/数据都用 contest）。
+// 该功能在平台首页是独立入口（顶层路由 /scientist），不在某个 SystemApp 内，
+// 故无法靠 URL hash 推断系统；这里**固定指向 paper 系统**（账号/Token/数据都用 paper 论文评选系统）。
 
-const TOKEN_KEY = 'contest_token';
-const USER_KEY = 'contest_user';
+const TOKEN_KEY = 'paper_token';
+const USER_KEY = 'paper_user';
 
 function getApiBaseUrl(): string {
   if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL as string;
-  if (import.meta.env.DEV) return 'http://localhost:3002/api/v1';
-  return '/api/contest';
+  if (import.meta.env.DEV) return 'http://localhost:3000/api/v1';
+  return '/api/paper';
 }
 
 export function getScientistToken(): string | null {
@@ -167,7 +167,7 @@ export const scientistApi = {
   },
 };
 
-/** 上传单个文件到 contest 的 /upload/file（→ OSS），带进度回调 */
+/** 上传单个文件到 paper 的 /upload/file（→ OSS），带进度回调 */
 export function scientistUploadFile(
   file: File,
   onProgress?: (percent: number) => void,
