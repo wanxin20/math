@@ -42,7 +42,6 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   const token = getScientistToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-System': 'contest',
     ...(options.headers as Record<string, string>),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -86,9 +85,15 @@ export const scientistAuth = {
   }) {
     return request('/auth/register', { method: 'POST', body: JSON.stringify(data) });
   },
-  profile() {
-    return request('/auth/profile');
-  },
+};
+
+/** 申报材料类别 → 中文标签（前端共用，避免多处重复） */
+export const CAT_LABEL: Record<string, string> = {
+  form: '申报表',
+  certificate: '证件',
+  papers: '代表性论文',
+  attachment: '其他附件',
+  memberForm: '会员申请表',
 };
 
 export interface ScientistMaterial {
@@ -126,9 +131,6 @@ export const scientistApi = {
   },
   adminList() {
     return request('/scientist/applications');
-  },
-  adminGetOne(id: number) {
-    return request(`/scientist/applications/${id}`);
   },
   async adminExportExcel(): Promise<{ success: boolean; message?: string }> {
     const token = getScientistToken();

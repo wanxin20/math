@@ -103,19 +103,10 @@ const ScientistAward: React.FC = () => {
     return () => { document.title = prev; };
   }, []);
 
-  // 登录后加载本人资料 + 已有申报
+  // 登录后：有申报记录则载入，否则用账号信息预填
   useEffect(() => {
     if (!loggedIn) return;
     (async () => {
-      const u = getScientistUser();
-      setForm((f) => ({
-        ...f,
-        name: f.name || u?.name || '',
-        email: f.email || u?.email || '',
-        institution: f.institution || u?.institution || '',
-        title: f.title || u?.title || '',
-        phone: f.phone || u?.phone || '',
-      }));
       const r = await scientistApi.getMine();
       if (r.success && r.data) {
         const d: any = r.data;
@@ -128,6 +119,13 @@ const ScientistAward: React.FC = () => {
         });
         setMaterials(Array.isArray(d.materials) ? d.materials : []);
         setAlreadySubmitted(true);
+      } else {
+        const u = getScientistUser();
+        setForm((f) => ({
+          ...f,
+          name: u?.name || '', email: u?.email || '',
+          institution: u?.institution || '', title: u?.title || '', phone: u?.phone || '',
+        }));
       }
     })();
   }, [loggedIn]);

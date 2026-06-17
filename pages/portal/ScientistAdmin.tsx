@@ -7,12 +7,10 @@ import {
   getScientistToken,
   getScientistUser,
   clearScientistAuth,
+  CAT_LABEL,
   type ScientistMaterial,
 } from '../../services/scientistApi';
 
-const CAT_LABEL: Record<string, string> = {
-  form: '申报表', certificate: '证件', papers: '代表性论文', attachment: '其他附件', memberForm: '会员申请表',
-};
 const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none';
 
 const ScientistAdmin: React.FC = () => {
