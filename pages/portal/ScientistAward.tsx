@@ -217,8 +217,8 @@ const ScientistAward: React.FC = () => {
                 </a>
               </div>
 
-              {/* 上传区 */}
-              <div className={`grid gap-4 ${tab === 'award' ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+              {/* 上传区（竖向排列） */}
+              <div className="space-y-4">
                 {cats.map((cat) => {
                   const items = materials.map((m, i) => ({ m, i })).filter((x) => x.m.category === cat.key);
                   return (
