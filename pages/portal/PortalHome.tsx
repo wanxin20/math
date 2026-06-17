@@ -5,6 +5,7 @@ import {
   FileTextIcon,
   GraduationCapIcon,
   TrophyIcon,
+  MedalIcon,
   ArrowRightIcon,
 } from '../../components/portal/PortalIcons';
 import { systemConfig } from '../../store/system';
@@ -37,6 +38,15 @@ const SYSTEM_CARDS = [
     accent: 'text-amber-600',
     hoverBorder: 'hover:border-amber-200',
   },
+  {
+    to: '/scientist',
+    name: '青年科学家奖评选',
+    desc: '2026 大湾区 · 在线注册申报与材料提交',
+    icon: <MedalIcon size={28} />,
+    iconBg: 'bg-gradient-to-br from-rose-600 to-rose-500 shadow-rose-600/30',
+    accent: 'text-rose-600',
+    hoverBorder: 'hover:border-rose-200',
+  },
 ];
 
 /** 竞赛平台入口首页：横幅 + 业务系统入口。路由: / */
@@ -62,7 +72,7 @@ const PortalHome: React.FC = () => {
         <h2 className="text-[22px] font-bold text-[#0f2a5c] border-l-4 border-blue-700 pl-3 mb-6">
           选择进入系统
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {SYSTEM_CARDS.map((card) => (
             <Link
               key={card.to}
