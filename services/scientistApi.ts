@@ -54,7 +54,11 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
       const msg = Array.isArray(data.message) ? data.message.join('；') : data.message;
       return { success: false, code: res.status, message: msg || '请求失败' };
     }
-    return { success: true, data: (data.data ?? data) as T, message: data.message };
+    // 后端 TransformInterceptor 统一包成 {code,data,message,timestamp}；正确解包，
+    // 注意 data 可能合法为 null（如"暂无申报"），不能 ?? 回退到整个信封
+    const payload =
+      data && typeof data === 'object' && 'data' in data ? (data as { data: T }).data : (data as T);
+    return { success: true, data: payload, message: data?.message };
   } catch (e: any) {
     return { success: false, message: e.message || '网络请求失败' };
   }
