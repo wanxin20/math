@@ -31,6 +31,33 @@ const MEMBER_CATS: CatDef[] = [
 const inputCls =
   'w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition';
 
+// —— 草稿暂存：文件已上传至服务器，这里只把"材料清单 + 意愿 + 当前页签"存到本浏览器（按账号隔离），
+//    提交前刷新或下次登录都能恢复，避免已上传的材料因刷新而丢失。
+interface AwardDraft {
+  materials: ScientistMaterial[];
+  willing: boolean;
+  tab: 'award' | 'member';
+  savedAt: number;
+}
+const draftKey = () => {
+  const u: any = getScientistUser() || {};
+  return `scientist_award_draft_${u.email || u.id || 'anon'}`;
+};
+const loadDraft = (): AwardDraft | null => {
+  try {
+    const raw = localStorage.getItem(draftKey());
+    return raw ? (JSON.parse(raw) as AwardDraft) : null;
+  } catch { return null; }
+};
+const saveDraft = (d: AwardDraft) => {
+  try { localStorage.setItem(draftKey(), JSON.stringify(d)); } catch { /* localStorage 不可用时忽略 */ }
+};
+const clearDraft = () => {
+  try { localStorage.removeItem(draftKey()); } catch { /* ignore */ }
+};
+const fmtSavedTime = (t: number) =>
+  new Date(t).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+
 const ScientistAward: React.FC = () => {
   const [loggedIn, setLoggedIn] = useState<boolean>(!!getScientistToken());
   const [tab, setTab] = useState<'award' | 'member'>('award');
@@ -41,6 +68,8 @@ const ScientistAward: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [uploadingCat, setUploadingCat] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [hydrated, setHydrated] = useState(false); // 是否已完成首次加载（草稿/服务器），用于开启自动暂存
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -49,19 +78,48 @@ const ScientistAward: React.FC = () => {
     return () => { document.title = prev; };
   }, []);
 
-  // 登录后载入已有申报（若有）
+  // 登录后载入：优先用本浏览器的草稿（更近的工作副本），否则用服务器已提交的数据
   useEffect(() => {
     if (!loggedIn) return;
+    let cancelled = false;
     (async () => {
       const r = await scientistApi.getMine();
-      if (r.success && r.data) {
-        const d: any = r.data;
-        setMaterials(Array.isArray(d.materials) ? d.materials : []);
-        setWilling(!!d.willingSponsorConference);
-        setAlreadySubmitted(true);
+      if (cancelled) return;
+      const server: any = r.success && r.data ? r.data : null;
+      if (server) setAlreadySubmitted(true);
+      const draft = loadDraft();
+      // 仅当服务器数据比本地草稿更新时才采用服务器（多设备/他处提交的情况）
+      const serverNewer =
+        !!server && !!draft && !!server.updatedAt && draft.savedAt < Date.parse(server.updatedAt);
+      if (draft && !serverNewer) {
+        setMaterials(Array.isArray(draft.materials) ? draft.materials : []);
+        setWilling(!!draft.willing);
+        if (draft.tab) setTab(draft.tab);
+        setLastSaved(draft.savedAt || null);
+      } else if (server) {
+        setMaterials(Array.isArray(server.materials) ? server.materials : []);
+        setWilling(!!server.willingSponsorConference);
       }
+      setHydrated(true);
     })();
+    return () => { cancelled = true; };
   }, [loggedIn]);
+
+  // 自动暂存：材料/意愿/页签变化即写入本浏览器，提交前刷新也不会丢
+  useEffect(() => {
+    if (!loggedIn || !hydrated) return;
+    const now = Date.now();
+    saveDraft({ materials, willing, tab, savedAt: now });
+    setLastSaved(now);
+  }, [loggedIn, hydrated, materials, willing, tab]);
+
+  const handleSaveDraft = () => {
+    const now = Date.now();
+    saveDraft({ materials, willing, tab, savedAt: now });
+    setLastSaved(now);
+    setMsg({ type: 'ok', text: '已暂存当前材料，刷新页面或下次登录后可继续填写并提交。' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleUpload = async (cat: Cat, files: FileList | null) => {
     if (!files || !files.length) return;
@@ -111,6 +169,8 @@ const ScientistAward: React.FC = () => {
     setShowConfirm(false);
     if (r.success) {
       setAlreadySubmitted(true);
+      // 同步草稿，使其晚于服务器 updatedAt，下次仍优先恢复这份一致的本地副本
+      saveDraft({ materials, willing, tab, savedAt: Date.now() });
       setMsg({ type: 'ok', text: alreadySubmitted ? '已更新申报材料。' : '申报提交成功！如需修改可随时回到本页更新。' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -119,11 +179,14 @@ const ScientistAward: React.FC = () => {
   };
 
   const logout = () => {
+    clearDraft(); // 先按当前账号清掉草稿，避免残留到共用电脑的下一个使用者
     clearScientistAuth();
     setLoggedIn(false);
     setMaterials([]);
     setAlreadySubmitted(false);
     setWilling(false);
+    setHydrated(false);
+    setLastSaved(null);
     setMsg(null);
   };
 
@@ -249,10 +312,24 @@ const ScientistAward: React.FC = () => {
                 })}
               </div>
 
-              <button onClick={openConfirm}
-                className="mt-7 w-full md:w-auto inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl px-12 py-3.5 text-base font-semibold transition shadow-lg shadow-blue-700/20">
-                {alreadySubmitted ? '更新申报' : '提交申报'}
-              </button>
+              <div className="mt-7 flex flex-col sm:flex-row sm:items-center gap-3">
+                <button onClick={openConfirm}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl px-12 py-3.5 text-base font-semibold transition shadow-lg shadow-blue-700/20">
+                  {alreadySubmitted ? '更新申报' : '提交申报'}
+                </button>
+                <button onClick={handleSaveDraft}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 rounded-xl px-8 py-3.5 text-base font-semibold transition">
+                  保存草稿
+                </button>
+                {lastSaved && (
+                  <span className="text-xs text-slate-400 sm:ml-1">
+                    已自动暂存 · {fmtSavedTime(lastSaved)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-slate-400">
+                所填材料会自动暂存在本浏览器，刷新或下次登录可继续；点「保存草稿」可手动暂存。最终需点「{alreadySubmitted ? '更新申报' : '提交申报'}」才算正式提交。
+              </p>
             </div>
           )}
         </div>
