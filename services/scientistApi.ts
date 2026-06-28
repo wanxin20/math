@@ -87,7 +87,8 @@ export const scientistAuth = {
     title: string;
     phone: string;
   }) {
-    return request('/auth/register', { method: 'POST', body: JSON.stringify(data) });
+    // 走申报模块的注册端点：内部复用同一账号体系，并标记“从申报平台注册”
+    return request('/scientist/register', { method: 'POST', body: JSON.stringify(data) });
   },
 };
 
@@ -135,6 +136,9 @@ export const scientistApi = {
   },
   adminList() {
     return request('/scientist/applications');
+  },
+  adminRegistrants() {
+    return request('/scientist/registrants');
   },
   async adminExportExcel(): Promise<{ success: boolean; message?: string }> {
     const token = getScientistToken();

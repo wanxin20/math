@@ -17,6 +17,8 @@ const ScientistAdmin: React.FC = () => {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [list, setList] = useState<any[]>([]);
+  const [regs, setRegs] = useState<any[]>([]);
+  const [tab, setTab] = useState<'apps' | 'users'>('apps');
   const [detail, setDetail] = useState<any | null>(null);
   const [msg, setMsg] = useState('');
 
@@ -34,9 +36,19 @@ const ScientistAdmin: React.FC = () => {
 
   const load = async () => {
     const r = await scientistApi.adminList();
-    if (r.success) { setList(r.data || []); setAuthed(true); setMsg(''); }
-    else if (r.code === 401) { setAuthed(false); }
-    else { setMsg(r.message || '加载失败（需管理员账号）'); setAuthed(false); }
+    if (r.success) {
+      setList(r.data || []);
+      setAuthed(true);
+      setMsg('');
+      // 一并拉取“从申报平台注册”的用户（失败不阻塞申报列表）
+      const ru = await scientistApi.adminRegistrants();
+      if (ru.success) setRegs(ru.data || []);
+    } else if (r.code === 401) {
+      setAuthed(false);
+    } else {
+      setMsg(r.message || '加载失败（需管理员账号）');
+      setAuthed(false);
+    }
     setReady(true);
   };
 
@@ -86,46 +98,111 @@ const ScientistAdmin: React.FC = () => {
           </div>
         ) : (
           <>
+            {/* Tab 切换 */}
+            <div className="flex items-center gap-1 mb-5 border-b border-slate-200">
+              {([['apps', `申报列表 (${list.length})`], ['users', `注册用户 (${regs.length})`]] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`px-4 py-2.5 text-sm font-semibold -mb-px border-b-2 transition ${
+                    tab === key ? 'border-blue-700 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-              <span className="text-sm text-slate-500">共 <b className="text-slate-800">{list.length}</b> 份申报</span>
+              <span className="text-sm text-slate-500">
+                {tab === 'apps' ? (
+                  <>共 <b className="text-slate-800">{list.length}</b> 份申报</>
+                ) : (
+                  <>共 <b className="text-slate-800">{regs.length}</b> 个从申报平台注册的用户，其中 <b className="text-slate-800">{regs.filter((u) => u.hasSubmitted).length}</b> 个已提交申报</>
+                )}
+              </span>
               <div className="flex gap-2">
-                <button onClick={exportExcel} className="bg-blue-700 hover:bg-blue-800 text-white rounded-lg px-4 py-2 text-sm font-semibold">导出 Excel</button>
+                {tab === 'apps' && (
+                  <button onClick={exportExcel} className="bg-blue-700 hover:bg-blue-800 text-white rounded-lg px-4 py-2 text-sm font-semibold">导出 Excel</button>
+                )}
                 <button onClick={load} className="border border-slate-300 text-slate-600 rounded-lg px-4 py-2 text-sm hover:bg-slate-50">刷新</button>
                 <button onClick={logout} className="text-slate-400 hover:text-blue-700 text-sm px-2">退出</button>
               </div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-slate-500 border-b border-slate-100 bg-slate-50">
-                    <th className="px-4 py-3 font-semibold">姓名</th>
-                    <th className="px-4 py-3 font-semibold">工作单位</th>
-                    <th className="px-4 py-3 font-semibold">邮箱</th>
-                    <th className="px-4 py-3 font-semibold">手机</th>
-                    <th className="px-4 py-3 font-semibold">愿协办</th>
-                    <th className="px-4 py-3 font-semibold">材料</th>
-                    <th className="px-4 py-3 font-semibold">提交时间</th>
-                    <th className="px-4 py-3 font-semibold">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-400">暂无申报</td></tr>
-                  ) : list.map((a) => (
-                    <tr key={a.id} className="border-b border-slate-50 hover:bg-blue-50/40">
-                      <td className="px-4 py-3 font-medium text-slate-800">{a.name}</td>
-                      <td className="px-4 py-3 text-slate-600">{a.institution}</td>
-                      <td className="px-4 py-3 text-slate-500">{a.email}</td>
-                      <td className="px-4 py-3 text-slate-600">{a.phone}</td>
-                      <td className="px-4 py-3">{a.willingSponsorConference ? '是' : '否'}</td>
-                      <td className="px-4 py-3 text-slate-500">{(a.materials || []).length} 个</td>
-                      <td className="px-4 py-3 text-slate-400 text-xs">{a.createdAt ? new Date(a.createdAt).toLocaleString('zh-CN', { hour12: false }) : ''}</td>
-                      <td className="px-4 py-3"><button onClick={() => setDetail(a)} className="text-blue-700 hover:underline">查看</button></td>
+
+            {tab === 'apps' ? (
+              <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-500 border-b border-slate-100 bg-slate-50">
+                      <th className="px-4 py-3 font-semibold">姓名</th>
+                      <th className="px-4 py-3 font-semibold">工作单位</th>
+                      <th className="px-4 py-3 font-semibold">邮箱</th>
+                      <th className="px-4 py-3 font-semibold">手机</th>
+                      <th className="px-4 py-3 font-semibold">愿协办</th>
+                      <th className="px-4 py-3 font-semibold">材料</th>
+                      <th className="px-4 py-3 font-semibold">提交时间</th>
+                      <th className="px-4 py-3 font-semibold">操作</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {list.length === 0 ? (
+                      <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-400">暂无申报</td></tr>
+                    ) : list.map((a) => (
+                      <tr key={a.id} className="border-b border-slate-50 hover:bg-blue-50/40">
+                        <td className="px-4 py-3 font-medium text-slate-800">{a.name}</td>
+                        <td className="px-4 py-3 text-slate-600">{a.institution}</td>
+                        <td className="px-4 py-3 text-slate-500">{a.email}</td>
+                        <td className="px-4 py-3 text-slate-600">{a.phone}</td>
+                        <td className="px-4 py-3">{a.willingSponsorConference ? '是' : '否'}</td>
+                        <td className="px-4 py-3 text-slate-500">{(a.materials || []).length} 个</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{a.createdAt ? new Date(a.createdAt).toLocaleString('zh-CN', { hour12: false }) : ''}</td>
+                        <td className="px-4 py-3"><button onClick={() => setDetail(a)} className="text-blue-700 hover:underline">查看</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-500 border-b border-slate-100 bg-slate-50">
+                      <th className="px-4 py-3 font-semibold">姓名</th>
+                      <th className="px-4 py-3 font-semibold">邮箱</th>
+                      <th className="px-4 py-3 font-semibold">工作单位</th>
+                      <th className="px-4 py-3 font-semibold">职称/职务</th>
+                      <th className="px-4 py-3 font-semibold">手机</th>
+                      <th className="px-4 py-3 font-semibold">注册时间</th>
+                      <th className="px-4 py-3 font-semibold">最后登录</th>
+                      <th className="px-4 py-3 font-semibold">申报状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {regs.length === 0 ? (
+                      <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-400">暂无注册用户</td></tr>
+                    ) : regs.map((u) => (
+                      <tr key={u.id} className="border-b border-slate-50 hover:bg-blue-50/40">
+                        <td className="px-4 py-3 font-medium text-slate-800">{u.name}</td>
+                        <td className="px-4 py-3 text-slate-500">{u.email}</td>
+                        <td className="px-4 py-3 text-slate-600">{u.institution}</td>
+                        <td className="px-4 py-3 text-slate-600">{u.title || '—'}</td>
+                        <td className="px-4 py-3 text-slate-600">{u.phone}</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{u.registeredAt ? new Date(u.registeredAt).toLocaleString('zh-CN', { hour12: false }) : ''}</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('zh-CN', { hour12: false }) : '—'}</td>
+                        <td className="px-4 py-3">
+                          {u.hasSubmitted ? (
+                            <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-green-50 text-green-600">已提交</span>
+                          ) : (
+                            <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-500">未提交</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
       </div>

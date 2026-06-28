@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as ExcelJS from 'exceljs';
 import {
   ScientistApplication,
   ScientistApplicationStatus,
 } from './entities/scientist-application.entity';
+import { ScientistRegistrant } from './entities/scientist-registrant.entity';
 import { CreateScientistApplicationDto } from './dto/scientist-application.dto';
+import { User } from '../users/entities/user.entity';
+import { AuthService } from '../auth/auth.service';
+import { RegisterDto } from '../auth/dto/register.dto';
 
 const CATEGORY_LABEL: Record<string, string> = {
   form: '申报表',
@@ -18,10 +22,74 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 @Injectable()
 export class ScientistService {
+  private readonly logger = new Logger(ScientistService.name);
+
   constructor(
     @InjectRepository(ScientistApplication)
     private readonly repo: Repository<ScientistApplication>,
+    @InjectRepository(ScientistRegistrant)
+    private readonly registrantRepo: Repository<ScientistRegistrant>,
+    @InjectRepository(User)
+    private readonly usersRepo: Repository<User>,
+    private readonly authService: AuthService,
   ) {}
+
+  /**
+   * 经申报平台注册：复用共享 AuthService 建账号，并打上“申报平台注册”标记。
+   * 标记写入用 try/catch 包裹——即便标记失败（极端情况）也不影响注册本身成功。
+   */
+  async registerViaScientist(dto: RegisterDto) {
+    const res = await this.authService.register(dto);
+    const userId = (res as any)?.user?.id as string | undefined;
+    if (userId) {
+      try {
+        await this.registrantRepo
+          .createQueryBuilder()
+          .insert()
+          .into(ScientistRegistrant)
+          .values({ userId, source: 'scientist' })
+          .orIgnore()
+          .execute();
+      } catch (e) {
+        this.logger.warn(
+          `记录申报平台注册标记失败（不影响注册）：${(e as Error).message}`,
+        );
+      }
+    }
+    return res;
+  }
+
+  /** 管理员：申报平台注册用户列表（含是否已提交申报） */
+  async findRegistrants() {
+    const marks = await this.registrantRepo.find({ order: { createdAt: 'DESC' } });
+    if (marks.length === 0) {
+      return [];
+    }
+    const ids = marks.map((m) => m.userId);
+    const users = await this.usersRepo.find({ where: { id: In(ids) } });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const apps = await this.repo.find({ where: { userId: In(ids) } });
+    const submitted = new Set(apps.map((a) => a.userId));
+    return marks
+      .map((m) => {
+        const u = userMap.get(m.userId);
+        if (!u) {
+          return null;
+        }
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          institution: u.institution,
+          title: u.title,
+          phone: u.phone,
+          registeredAt: u.createdAt,
+          lastLoginAt: u.lastLoginAt,
+          hasSubmitted: submitted.has(u.id),
+        };
+      })
+      .filter(Boolean);
+  }
 
   /** 提交或更新本人申报（一人一份，整体覆盖） */
   async upsertForUser(userId: string, dto: CreateScientistApplicationDto) {

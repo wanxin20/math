@@ -15,9 +15,11 @@ import {
   CreateScientistApplicationDto,
   UpdateScientistApplicationDto,
 } from './dto/scientist-application.dto';
+import { RegisterDto } from '../auth/dto/register.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { CurrentUser } from '@/common/decorators/user.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Scientist')
 @Controller('scientist')
@@ -25,6 +27,13 @@ import { CurrentUser } from '@/common/decorators/user.decorator';
 @ApiBearerAuth('JWT-auth')
 export class ScientistController {
   constructor(private readonly scientistService: ScientistService) {}
+
+  @Post('register')
+  @Public()
+  @ApiOperation({ summary: '申报平台注册（复用账号体系并标记“申报平台”来源）' })
+  register(@Body() dto: RegisterDto) {
+    return this.scientistService.registerViaScientist(dto);
+  }
 
   @Post('application')
   @ApiOperation({ summary: '提交青年科学家奖申报（已存在则覆盖）' })
@@ -67,6 +76,13 @@ export class ScientistController {
   @ApiOperation({ summary: '管理员：全部申报列表' })
   list() {
     return this.scientistService.findAll();
+  }
+
+  @Get('registrants')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: '管理员：申报平台注册用户列表' })
+  registrants() {
+    return this.scientistService.findRegistrants();
   }
 
   @Get('applications/:id')

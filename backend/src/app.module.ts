@@ -35,6 +35,7 @@ import { Advisor } from './modules/registrations/entities/advisor.entity';
 import { JudgeAssignment } from './modules/reviews/entities/judge-assignment.entity';
 import { JudgeScore } from './modules/reviews/entities/judge-score.entity';
 import { ScientistApplication } from './modules/scientist/entities/scientist-application.entity';
+import { ScientistRegistrant } from './modules/scientist/entities/scientist-registrant.entity';
 
 // 配置模块
 import { APP_GUARD } from '@nestjs/core';
@@ -72,6 +73,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
           JudgeAssignment,
           JudgeScore,
           ScientistApplication,
+          ScientistRegistrant,
         ],
         synchronize: false, // 开发环境自动同步，生产环境使用migration
         logging: configService.get('NODE_ENV') === 'development',
